@@ -47,20 +47,32 @@ pip install -e .
 
 ## Quick Start
 
-### Using the Command-Line Interface
+### 1. Launch the Interactive 3D Presentation Dashboard (Recommended)
+
+Run the modern clinical presentation application with full 3D digital twin playback, side-by-side synchronized comparison, and automated gait pathology detection:
+
+```bash
+streamlit run app.py
+```
+Or with Python module syntax:
+```bash
+python -m streamlit run app.py
+```
+
+### 2. Using the Command-Line Interface
 
 ```bash
 # Run complete analysis pipeline
 python -m pedigait --input data/c3d_files --output outputs --all
 
 # Process a single file
-python -m pedigait --input data/ --sample-file TD1a.c3d --output outputs --visualize
+python -m pedigait --input data/c3d_files --sample-file TD1a.c3d --output outputs --visualize
 
 # Run comparative analysis
-python -m pedigait --input data/ --output outputs --comparative --visualize
+python -m pedigait --input data/c3d_files --output outputs --comparative --visualize
 
 # Run classification
-python -m pedigait --input data/ --output outputs --classify
+python -m pedigait --input data/c3d_files --output outputs --classify
 ```
 
 ### Using the Python API

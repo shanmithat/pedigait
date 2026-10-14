@@ -77,8 +77,12 @@ class SymmetryAnalyzer:
         else:
             symmetry_index = 1.0
         
-        # Calculate correlation
-        corr, _ = stats.pearsonr(left, right)
+        # Calculate correlation safely
+        if np.std(left) > 1e-4 and np.std(right) > 1e-4:
+            corr_val, _ = stats.pearsonr(left, right)
+            corr = float(corr_val) if np.isfinite(corr_val) else 0.0
+        else:
+            corr = 1.0 if np.allclose(left, right, atol=1e-3) else 0.0
         
         # Calculate mean and std of differences
         mean_diff = float(np.mean(np.abs(diff)))

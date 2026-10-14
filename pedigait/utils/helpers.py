@@ -159,9 +159,24 @@ def create_summary_report(analysis_results: Dict) -> str:
         comp = analysis_results["comparative_analysis"]
         report.append("\nCOMPARATIVE ANALYSIS (TD vs CP):")
         report.append("-" * 40)
-        report.append(f"  TD KSwS: {comp.get('td_ksws', {}).get('ksws_index', 0):.4f}")
-        report.append(f"  CP KSwS: {comp.get('cp_ksws', {}).get('ksws_index', 0):.4f}")
-        report.append(f"  KSwS Difference: {comp.get('differences', {}).get('ksws_index_diff', 0):.4f}")
+        td_k = comp.get('td_ksws', {})
+        cp_k = comp.get('cp_ksws', {})
+        diffs = comp.get('differences', {})
+        metrics = comp.get('metrics', {})
+        
+        td_val = td_k.get('ksws_index', 0)
+        cp_val = cp_k.get('cp_ksws', 0) if 'cp_ksws' in cp_k else cp_k.get('ksws_index', 0)
+        ksws_diff = diffs.get('ksws_index_diff', abs(td_val - cp_val))
+        
+        report.append(f"  TD KSwS: {td_val:.4f} ({td_k.get('classification', 'N/A')})")
+        report.append(f"  CP KSwS: {cp_val:.4f} ({cp_k.get('classification', 'N/A')})")
+        report.append(f"  KSwS Difference: {ksws_diff:.4f}")
+        if 'overall_rom_difference' in metrics:
+            report.append(f"  Overall ROM Difference: {metrics['overall_rom_difference']:.2f} deg")
+        if 'overall_trajectory_rmse' in metrics:
+            report.append(f"  Overall Trajectory RMSE: {metrics['overall_trajectory_rmse']:.2f} deg")
+        if 'symmetry_difference' in metrics:
+            report.append(f"  Symmetry Difference: {metrics['symmetry_difference']:.4f}")
     
     # Range of motion
     if "range_of_motion" in analysis_results:

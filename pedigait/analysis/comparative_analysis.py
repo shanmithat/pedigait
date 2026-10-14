@@ -55,7 +55,7 @@ class ComparativeAnalyzer:
         differences = self._calculate_differences(td_features, cp_features)
         
         # Calculate comparative metrics
-        metrics = self._calculate_comparative_metrics(td_features, cp_features)
+        metrics = self._calculate_comparative_metrics(td_features, cp_features, differences)
         
         return ComparativeResult(
             td_data=td_features,
@@ -170,18 +170,20 @@ class ComparativeAnalyzer:
         
         return differences
     
-    def _calculate_comparative_metrics(self, td_features: Dict, cp_features: Dict) -> Dict:
+    def _calculate_comparative_metrics(self, td_features: Dict, cp_features: Dict, differences: Optional[Dict] = None) -> Dict:
         """
         Calculate overall comparative metrics.
         
         Args:
             td_features: TD features
             cp_features: CP features
+            differences: Calculated differences dictionary
             
         Returns:
             Dictionary of comparative metrics
         """
         metrics = {}
+        diff_dict = differences if differences is not None else {}
         
         # Calculate overall ROM difference
         joints = ["pelvis", "hip_left", "hip_right", "knee_left", 
@@ -208,7 +210,7 @@ class ComparativeAnalyzer:
         
         for joint_name in joints:
             for plane in ["sagittal", "frontal", "transverse"]:
-                rmse = self.differences.get(f"{joint_name}_{plane}_rmse", 0)
+                rmse = diff_dict.get(f"{joint_name}_{plane}_rmse", 0)
                 total_rmse += rmse
                 count += 1
         
@@ -253,10 +255,16 @@ class ComparativeAnalyzer:
             cp_features: CP features
             
         Returns:
-            Symmetry difference score
+            Symmetry difference score (0.0 to 1.0)
         """
-        # This is a placeholder - actual implementation would use symmetry analysis
-        return 0.0
+        td_l_rom = td_features.get("knee_left_rom", {}).get("sagittal", 50.0)
+        td_r_rom = td_features.get("knee_right_rom", {}).get("sagittal", 50.0)
+        cp_l_rom = cp_features.get("knee_left_rom", {}).get("sagittal", 50.0)
+        cp_r_rom = cp_features.get("knee_right_rom", {}).get("sagittal", 50.0)
+        
+        td_sym = 1.0 - min(abs(td_l_rom - td_r_rom) / max(td_l_rom + td_r_rom, 1e-4), 1.0)
+        cp_sym = 1.0 - min(abs(cp_l_rom - cp_r_rom) / max(cp_l_rom + cp_r_rom, 1e-4), 1.0)
+        return float(abs(td_sym - cp_sym))
     
     def create_comparative_visualizations(self, td_features: Dict, cp_features: Dict) -> Dict:
         """

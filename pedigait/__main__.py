@@ -137,7 +137,8 @@ def run_complete_pipeline(args) -> Dict:
             processor = create_kinematic_processor(loader.point_rate)
             kinematic_data = processor.process_marker_data(
                 loader.get_marker_positions(),
-                loader.get_marker_labels()
+                loader.get_marker_labels(),
+                loader.get_kinematic_angles()
             )
             kinematic_data_list.append(kinematic_data)
             file_names.append(c3d_path.name)
@@ -240,7 +241,8 @@ def process_single_file(args):
     processor = create_kinematic_processor(loader.point_rate)
     kinematic_data = processor.process_marker_data(
         loader.get_marker_positions(),
-        loader.get_marker_labels()
+        loader.get_marker_labels(),
+        loader.get_kinematic_angles()
     )
     
     # Analyze
@@ -476,10 +478,36 @@ def run_comparative_analysis(kinematic_data_list: List, file_names: List[str], a
         if td_data and cp_data:
             # Compare first TD and first CP
             result = analyzer.compare_gait_patterns(td_data[0], cp_data[0])
+            try:
+                from pedigait.analysis.symmetry_analysis import SymmetryAnalyzer
+                sym = SymmetryAnalyzer()
+                td_ksws_res = sym.analyze_knee_symmetry(td_data[0])
+                cp_ksws_res = sym.analyze_knee_symmetry(cp_data[0])
+                td_ksws_dict = {
+                    "ksws_index": float(td_ksws_res.ksws_index),
+                    "classification": str(td_ksws_res.severity.classification),
+                    "symmetry_index": float(td_ksws_res.symmetry.symmetry_index)
+                }
+                cp_ksws_dict = {
+                    "ksws_index": float(cp_ksws_res.ksws_index),
+                    "classification": str(cp_ksws_res.severity.classification),
+                    "symmetry_index": float(cp_ksws_res.symmetry.symmetry_index)
+                }
+                ksws_diff = float(abs(td_ksws_res.ksws_index - cp_ksws_res.ksws_index))
+            except Exception:
+                td_ksws_dict = {"ksws_index": 0.0, "classification": "Unknown", "symmetry_index": 0.0}
+                cp_ksws_dict = {"ksws_index": 0.0, "classification": "Unknown", "symmetry_index": 0.0}
+                ksws_diff = 0.0
+
+            diffs = dict(result.differences)
+            diffs["ksws_index_diff"] = ksws_diff
+
             return {
                 "td_data": result.td_data,
                 "cp_data": result.cp_data,
-                "differences": result.differences,
+                "td_ksws": td_ksws_dict,
+                "cp_ksws": cp_ksws_dict,
+                "differences": diffs,
                 "metrics": result.metrics
             }
         else:
@@ -577,7 +605,8 @@ def process_file(c3d_path: Path, args) -> Dict:
     
     kinematic_data = processor.process_marker_data(
         loader.get_marker_positions(),
-        loader.get_marker_labels()
+        loader.get_marker_labels(),
+        loader.get_kinematic_angles()
     )
     
     results = {
