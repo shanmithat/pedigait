@@ -31,7 +31,7 @@ A comprehensive Python package for analyzing pediatric gait patterns using motio
 
 ```bash
 # Clone the repository
-git clone https://github.com/shanforpresident/pedigait.git
+git clone https://github.com/shanmithat/pedigait.git
 cd pedigait
 
 # Create virtual environment (recommended)
@@ -282,10 +282,10 @@ If you use this package in your research, please cite:
 
 ```
 @misc{pedigait,
-  author = {Pediatric Gait Analysis Team},
+  author = {Shanmitha T},
   title = {Pediatric Gait Digital Twin Analysis},
-  year = {2024},
-  howpublished = {\url{https://github.com/shanforpresident/pedigait}},
+  year = {2026},
+  howpublished = {\url{https://github.com/shanmithat/pedigait}},
 }
 ```
 

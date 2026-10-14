@@ -11,9 +11,9 @@ setup(
     name="pedigait",
     version="1.0.0",
     description="Pediatric Gait Digital Twin Analysis Package",
-    author="Pediatric Gait Analysis Team",
-    author_email="",
-    url="https://github.com/shanforpresident/pedigait",
+    author="Shanmitha T",
+    author_email="shanmithathirumoorthy03@gmail.com",
+    url="https://github.com/shanmithat/pedigait",
     packages=find_packages(),
     install_requires=requirements,
     python_requires=">=3.8",
@@ -36,7 +36,7 @@ setup(
     ],
     keywords="gait analysis, biomechanics, pediatric, c3d, motion capture, digital twin",
     project_urls={
-        "Bug Reports": "https://github.com/shanforpresident/pedigait/issues",
-        "Source": "https://github.com/shanforpresident/pedigait",
+        "Bug Reports": "https://github.com/shanmithat/pedigait/issues",
+        "Source": "https://github.com/shanmithat/pedigait",
     },
 )
