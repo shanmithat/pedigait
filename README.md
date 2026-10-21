@@ -1,6 +1,15 @@
-# Pediatric Gait Digital Twin Analysis
+# PediGait: 3D Digital Twin & Biomechanical Workstation
 
-A comprehensive Python package for analyzing pediatric gait patterns using motion capture data (C3D files). This package provides tools for kinematic analysis, 3D visualization, locomotion classification, and comparative analysis between typically developing (TD) and cerebral palsy (CP) gait.
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Demo-00f0ff?style=for-the-badge&logo=github)](https://shanmithat.github.io/pedigait/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/shanmithat/pedigait/main/app.py)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
+
+> 🌐 **Live Web Application & Interactive 3D Digital Twin:**  
+> **[https://shanmithat.github.io/pedigait/](https://shanmithat.github.io/pedigait/)**
+
+An end-to-end computational framework and clinical workstation for analyzing pediatric gait patterns using 3D optical motion capture data (Vicon C3D files). Provides automated kinematic processing, interactive 3D digital twin visualization, Knee Swing Severity (KSwS) grading, and deep learning locomotion classification.
 
 ## Features
 
