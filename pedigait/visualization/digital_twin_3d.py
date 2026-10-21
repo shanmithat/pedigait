@@ -385,79 +385,237 @@ class DigitalTwinVisualizer:
         print(f"Animation saved to: {output_path}")
 
 
-def create_side_by_side_digital_twin(loader_td: 'C3DLoader', loader_cp: 'C3DLoader',
-                                     n_frames: int = 50) -> go.Figure:
+def normalize_mocap_markers(markers: np.ndarray, labels: List[str], n_frames: int = 60) -> Tuple[np.ndarray, List[str]]:
     """
-    Create a synchronized side-by-side comparative 3D digital twin animation
-    comparing typically developing (TD) and cerebral palsy (CP) gait.
+    Extract active walking window, infill tracking dropouts, align facing orientation to +X,
+    ground anchor to Z=0.0, and center pelvis horizontally at (0, 0).
+    """
+    m = markers.copy()
+    labels_clean = [str(l).strip().upper() for l in labels]
+    
+    # 1. Active window detection (frames where >= 12 markers exist)
+    valid_counts = (np.abs(m[2]) > 0.005).sum(axis=0)
+    valid_frames = np.where(valid_counts >= 12)[0]
+    if len(valid_frames) == 0:
+        valid_frames = np.arange(m.shape[2])
+    f_start, f_end = valid_frames[0], valid_frames[-1]
+    if f_end - f_start < 25:
+        f_start, f_end = 0, m.shape[2] - 1
+        
+    # Sample evenly across active window
+    sample_indices = np.linspace(f_start, f_end, n_frames).astype(int)
+    m_sampled = m[:, :, sample_indices]
+    
+    # Infill dropped markers within active window; mask completely unrecorded markers as NaN
+    for mk in range(m_sampled.shape[1]):
+        for dim in range(3):
+            vals = m_sampled[dim, mk, :]
+            bad = (np.abs(vals) < 0.001) | np.isnan(vals)
+            if np.all(bad):
+                m_sampled[:, mk, :] = np.nan
+                break
+            elif np.any(bad):
+                good_idx = np.where(~bad)[0]
+                m_sampled[dim, mk, bad] = np.interp(np.where(bad)[0], good_idx, vals[good_idx])
+                
+    # 2. Orientation heading alignment
+    sacr_i = labels_clean.index('SACR') if 'SACR' in labels_clean else (labels_clean.index('LPSI') if 'LPSI' in labels_clean else None)
+    lasi_i = labels_clean.index('LASI') if 'LASI' in labels_clean else None
+    rasi_i = labels_clean.index('RASI') if 'RASI' in labels_clean else None
+    
+    f_mid = n_frames // 2
+    if sacr_i is not None and lasi_i is not None and rasi_i is not None:
+        ant_x = (m_sampled[0, lasi_i, f_mid] + m_sampled[0, rasi_i, f_mid])/2.0 - m_sampled[0, sacr_i, f_mid]
+        ant_y = (m_sampled[1, lasi_i, f_mid] + m_sampled[1, rasi_i, f_mid])/2.0 - m_sampled[1, sacr_i, f_mid]
+        heading_rad = np.arctan2(ant_y, ant_x)
+    else:
+        heading_rad = 0.0
+        
+    # Rotate around Z-axis by -heading_rad so anterior points along +X
+    rot_angle = -heading_rad
+    cos_a, sin_a = np.cos(rot_angle), np.sin(rot_angle)
+    x_rot = cos_a * m_sampled[0] - sin_a * m_sampled[1]
+    y_rot = sin_a * m_sampled[0] + cos_a * m_sampled[1]
+    z_rot = m_sampled[2]
+    
+    # 3. Ground floor anchoring (lowest foot landmark = 0.0)
+    z_valid = z_rot[~np.isnan(z_rot) & (z_rot > 0.001)]
+    z_min = float(np.nanmin(z_valid)) if len(z_valid) > 0 else 0.0
+    z_rot = np.where(np.isnan(z_rot), np.nan, np.maximum(0.0, z_rot - z_min))
+    
+    # 4. Pelvis horizontal centering per frame (focal spot centering)
+    if lasi_i is not None and rasi_i is not None and sacr_i is not None:
+        pelvis_x = (x_rot[lasi_i] + x_rot[rasi_i] + x_rot[sacr_i]) / 3.0
+        pelvis_y = (y_rot[lasi_i] + y_rot[rasi_i] + y_rot[sacr_i]) / 3.0
+        x_rot -= pelvis_x[np.newaxis, :]
+        y_rot -= pelvis_y[np.newaxis, :]
+    else:
+        x_rot -= np.nanmean(x_rot, axis=1, keepdims=True)
+        y_rot -= np.nanmean(y_rot, axis=1, keepdims=True)
+        
+    # 5. Filter spatial outliers (> 0.95m from horizontal body core)
+    dist_xy = np.sqrt(x_rot**2 + y_rot**2)
+    bad_dist = dist_xy > 0.95
+    x_rot[bad_dist] = np.nan
+    y_rot[bad_dist] = np.nan
+    z_rot[bad_dist] = np.nan
+
+    m_clean = np.stack([x_rot, y_rot, z_rot], axis=0)
+    return m_clean, labels_clean
+
+
+def create_side_by_side_digital_twin(loader_td: 'C3DLoader', loader_cp: 'C3DLoader',
+                                     n_frames: int = 60, camera_mode: str = "sagittal") -> go.Figure:
+    """
+    Create an orientation-corrected, synchronized, side-by-side comparative 3D digital twin animation
+    comparing typically developing (TD) and cerebral palsy (CP) gait with uniform view and positioning.
     """
     if not PLOTLY_AVAILABLE:
         raise ImportError("Plotly required for comparative visualization.")
         
-    m_td = loader_td.get_marker_positions()
-    l_td = loader_td.get_marker_labels()
-    m_cp = loader_cp.get_marker_positions()
-    l_cp = loader_cp.get_marker_labels()
+    # Extract orientation-corrected, centered, ground-anchored markers
+    m_td, l_td = normalize_mocap_markers(loader_td.get_marker_positions(), loader_td.get_marker_labels(), n_frames=n_frames)
+    m_cp, l_cp = normalize_mocap_markers(loader_cp.get_marker_positions(), loader_cp.get_marker_labels(), n_frames=n_frames)
     
     skel_td = SkeletonBuilder(m_td, l_td)
     skel_cp = SkeletonBuilder(m_cp, l_cp)
     
-    min_frames = min(m_td.shape[2], m_cp.shape[2])
-    frame_ids = np.linspace(0, min_frames - 1, n_frames).astype(int)
+    # Marker colors by anatomy
+    def get_marker_colors(labels):
+        colors = []
+        for l in labels:
+            if l.startswith("L") and not l.startswith("LB"):
+                colors.append("#00f0ff")  # Cyan for Left
+            elif l.startswith("R") and not l.startswith("RB"):
+                colors.append("#ff4d6d")  # Coral for Right
+            elif any(k in l for k in ["HD", "C7"]):
+                colors.append("#ffd166")  # Gold for Cranial
+            else:
+                colors.append("#10b981")  # Emerald for Spine/Pelvis
+        return colors
+
+    colors_td = get_marker_colors(l_td)
+    colors_cp = get_marker_colors(l_cp)
     
     fig = make_subplots(
         rows=1, cols=2,
         specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]],
-        subplot_titles=(f"TD Gait: {loader_td.c3d_path.stem}", f"CP Gait: {loader_cp.c3d_path.stem}")
+        subplot_titles=(
+            f"<b>TD Normative Reference:</b> {loader_td.c3d_path.stem}",
+            f"<b>CP Pathological:</b> {loader_cp.c3d_path.stem}"
+        ),
+        horizontal_spacing=0.04
     )
     
-    # Initial Frame 0 TD
-    x_l_td, y_l_td, z_l_td = skel_td.build_skeleton_lines(frame_ids[0])
-    fig.add_trace(go.Scatter3d(x=x_l_td, y=y_l_td, z=z_l_td, mode="lines",
-                              line=dict(color="#00d2ff", width=4), name="TD Skeleton"), row=1, col=1)
-    fig.add_trace(go.Scatter3d(x=m_td[0, :, frame_ids[0]], y=m_td[1, :, frame_ids[0]], z=m_td[2, :, frame_ids[0]],
-                              mode="markers", marker=dict(size=5, color="#ffffff"), text=l_td, name="TD Joints"), row=1, col=1)
-                              
-    # Initial Frame 0 CP
-    x_l_cp, y_l_cp, z_l_cp = skel_cp.build_skeleton_lines(frame_ids[0])
-    fig.add_trace(go.Scatter3d(x=x_l_cp, y=y_l_cp, z=z_l_cp, mode="lines",
-                              line=dict(color="#ff5252", width=4), name="CP Skeleton"), row=1, col=2)
-    fig.add_trace(go.Scatter3d(x=m_cp[0, :, frame_ids[0]], y=m_cp[1, :, frame_ids[0]], z=m_cp[2, :, frame_ids[0]],
-                              mode="markers", marker=dict(size=5, color="#ffd166"), text=l_cp, name="CP Joints"), row=1, col=2)
-                              
-    # Synchronized frames
+    # Ground floor grid lines
+    gx, gy, gz = [], [], []
+    for g_pos in np.linspace(-0.6, 0.6, 7):
+        gx.extend([g_pos, g_pos, None, -0.6, 0.6, None])
+        gy.extend([-0.6, 0.6, None, g_pos, g_pos, None])
+        gz.extend([0.0, 0.0, None, 0.0, 0.0, None])
+        
+    # Trace 0: TD Skeleton lines (Col 1)
+    x_l_td, y_l_td, z_l_td = skel_td.build_skeleton_lines(0)
+    fig.add_trace(go.Scatter3d(
+        x=x_l_td, y=y_l_td, z=z_l_td, mode="lines",
+        line=dict(color="#00f0ff", width=4.5), name="TD Skeleton", hoverinfo="skip"
+    ), row=1, col=1)
+    
+    # Trace 1: TD Joints (Col 1)
+    fig.add_trace(go.Scatter3d(
+        x=m_td[0, :, 0], y=m_td[1, :, 0], z=m_td[2, :, 0], mode="markers",
+        marker=dict(size=5.5, color=colors_td, opacity=0.95), text=l_td,
+        name="TD Joints", hovertemplate="<b>%{text}</b><br>Z: %{z:.2f} m<extra></extra>"
+    ), row=1, col=1)
+    
+    # Trace 2: TD Floor Grid (Col 1)
+    fig.add_trace(go.Scatter3d(
+        x=gx, y=gy, z=gz, mode="lines",
+        line=dict(color="rgba(71, 85, 105, 0.35)", width=1),
+        hoverinfo="skip", showlegend=False
+    ), row=1, col=1)
+    
+    # Trace 3: CP Skeleton lines (Col 2)
+    x_l_cp, y_l_cp, z_l_cp = skel_cp.build_skeleton_lines(0)
+    fig.add_trace(go.Scatter3d(
+        x=x_l_cp, y=y_l_cp, z=z_l_cp, mode="lines",
+        line=dict(color="#ff4d6d", width=4.5), name="CP Skeleton", hoverinfo="skip"
+    ), row=1, col=2)
+    
+    # Trace 4: CP Joints (Col 2)
+    fig.add_trace(go.Scatter3d(
+        x=m_cp[0, :, 0], y=m_cp[1, :, 0], z=m_cp[2, :, 0], mode="markers",
+        marker=dict(size=5.5, color=colors_cp, opacity=0.95), text=l_cp,
+        name="CP Joints", hovertemplate="<b>%{text}</b><br>Z: %{z:.2f} m<extra></extra>"
+    ), row=1, col=2)
+    
+    # Trace 5: CP Floor Grid (Col 2)
+    fig.add_trace(go.Scatter3d(
+        x=gx, y=gy, z=gz, mode="lines",
+        line=dict(color="rgba(71, 85, 105, 0.35)", width=1),
+        hoverinfo="skip", showlegend=False
+    ), row=1, col=2)
+    
+    # Synchronized frames (simultaneously updating traces [0, 1, 3, 4])
     frames = []
-    for idx in frame_ids:
-        x_td, y_td, z_td = skel_td.build_skeleton_lines(idx)
-        x_cp, y_cp, z_cp = skel_cp.build_skeleton_lines(idx)
+    for f in range(n_frames):
+        x_td, y_td, z_td = skel_td.build_skeleton_lines(f)
+        x_cp, y_cp, z_cp = skel_cp.build_skeleton_lines(f)
         frame = go.Frame(
             data=[
                 go.Scatter3d(x=x_td, y=y_td, z=z_td),
-                go.Scatter3d(x=m_td[0, :, idx], y=m_td[1, :, idx], z=m_td[2, :, idx]),
+                go.Scatter3d(x=m_td[0, :, f], y=m_td[1, :, f], z=m_td[2, :, f]),
                 go.Scatter3d(x=x_cp, y=y_cp, z=z_cp),
-                go.Scatter3d(x=m_cp[0, :, idx], y=m_cp[1, :, idx], z=m_cp[2, :, idx])
+                go.Scatter3d(x=m_cp[0, :, f], y=m_cp[1, :, f], z=m_cp[2, :, f])
             ],
-            name=str(idx)
+            traces=[0, 1, 3, 4],
+            name=f"frame_{f}"
         )
         frames.append(frame)
         
     fig.frames = frames
     
+    # Camera definition (identical for both subplots)
+    if "sagittal" in camera_mode.lower():
+        # Lateral view looking along -Y: best for knee flexion & equinus
+        cam = dict(eye=dict(x=0.0, y=-2.4, z=0.45), up=dict(x=0, y=0, z=1))
+    elif "frontal" in camera_mode.lower():
+        # Frontal view looking along +X: best for bilateral asymmetry
+        cam = dict(eye=dict(x=2.4, y=0.0, z=0.45), up=dict(x=0, y=0, z=1))
+    else:
+        # 3D Isometric view
+        cam = dict(eye=dict(x=1.7, y=-1.7, z=1.1), up=dict(x=0, y=0, z=1))
+        
+    scene_spec = dict(
+        xaxis=dict(range=[-0.7, 0.7], title="", showgrid=True, gridcolor="#1e293b", zeroline=False, showticklabels=False),
+        yaxis=dict(range=[-0.7, 0.7], title="", showgrid=True, gridcolor="#1e293b", zeroline=False, showticklabels=False),
+        zaxis=dict(range=[0.0, 1.6], title="", showgrid=True, gridcolor="#1e293b", zeroline=True, zerolinecolor="#38bdf8", showticklabels=False),
+        aspectmode="manual",
+        aspectratio=dict(x=1, y=1, z=1.4),
+        camera=cam
+    )
+    
     fig.update_layout(
-        paper_bgcolor="#11151c",
-        height=650,
-        margin=dict(l=10, r=10, t=50, b=10),
+        paper_bgcolor="#070b14",
+        plot_bgcolor="#070b14",
+        height=680,
+        margin=dict(l=5, r=5, t=50, b=10),
+        scene=scene_spec,
+        scene2=scene_spec,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.08, xanchor="center", x=0.5, font=dict(color="#e2e8f0")),
         updatemenus=[dict(
             type="buttons",
             showactive=False,
             x=0.04, y=0.02,
             buttons=[
-                dict(label="▶ Play", method="animate",
-                     args=[None, {"frame": {"duration": 70, "redraw": True}, "fromcurrent": True}]),
+                dict(label="▶ Play Synchronized Motion", method="animate",
+                     args=[None, {"frame": {"duration": 40, "redraw": True}, "fromcurrent": True, "mode": "immediate"}]),
                 dict(label="❚❚ Pause", method="animate",
                      args=[[None], {"frame": {"duration": 0, "redraw": False}, "mode": "immediate"}])
             ],
-            bgcolor="#1e2638", font=dict(color="#ffffff")
+            bgcolor="#1e293b", font=dict(color="#ffffff", size=12),
+            bordercolor="#38bdf8", borderwidth=1
         )]
     )
     return fig
+

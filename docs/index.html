@@ -594,22 +594,103 @@
     <!-- TAB 2: Synchronized Comparative Twin -->
     <section id="tab-compare" class="tab-content">
       <div class="card" style="margin-bottom:1.5rem;">
-        <div class="card-header">
-          <span class="card-title">🔄 Synchronized Side-by-Side Comparative Twin (TD Control vs Diplegic CP)</span>
-        </div>
-        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
-          Simultaneous real-time comparison between <strong>TD1a (Typically Developing Normative Control)</strong> on the left and <strong>DiCP1 (Diplegic Cerebral Palsy with Crouch & Stiff Knee)</strong> on the right. Notice persistent stance knee flexion (>25°) and equinus forefoot landing in the pathological subject.
-        </p>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
-          <div style="background:#070b14; border-radius:var(--radius-sm); border:1px solid var(--border-color); padding:0.5rem;">
-            <div style="font-size:0.8rem; font-weight:700; color:#00f0ff; text-align:center; padding:0.4rem;">TD1a: Typically Developing (Normal)</div>
-            <div id="compare-td" style="height:480px;"></div>
+        <div class="card-header" style="flex-wrap:wrap; gap:1rem;">
+          <div>
+            <span class="card-title">🔄 Synchronized Side-by-Side Comparative Digital Twin</span>
+            <p style="font-size:0.78rem; color:var(--text-secondary); margin-top:0.25rem;">
+              Simultaneous 60-frame synchronized playback with normalized ground anchoring, forward orientation (+X), and uniform camera perspective.
+            </p>
           </div>
-          <div style="background:#070b14; border-radius:var(--radius-sm); border:1px solid var(--border-color); padding:0.5rem;">
-            <div style="font-size:0.8rem; font-weight:700; color:#ef4444; text-align:center; padding:0.4rem;">DiCP1: Spastic Diplegia (Crouch & Stiff)</div>
-            <div id="compare-cp" style="height:480px;"></div>
+          <div class="camera-presets" style="position:static; margin-left:auto;">
+            <button class="cam-btn active" id="cmp-cam-sagittal" onclick="setCompareCamera('sagittal')">Sagittal (Lateral View)</button>
+            <button class="cam-btn" id="cmp-cam-iso" onclick="setCompareCamera('iso')">3D Isometric</button>
+            <button class="cam-btn" id="cmp-cam-frontal" onclick="setCompareCamera('frontal')">Frontal (Coronal View)</button>
           </div>
         </div>
+
+        <!-- Subject Selectors & Comparative Metric Header -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1rem;">
+          <div style="background:rgba(15,23,42,0.6); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+            <div>
+              <label class="form-label" style="margin-bottom:0.2rem;">TD Normative Control:</label>
+              <select id="compare-td-select" class="form-select" style="padding:0.35rem 0.6rem; font-size:0.8rem; width:220px;" onchange="onCompareSubjectChange()">
+                <option value="TD1a" selected>TD1a (Healthy Control Reference)</option>
+              </select>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge badge-normal">Healthy Normal</span>
+              <div style="font-size:0.75rem; color:#6ee7b7; font-weight:600; margin-top:0.2rem;">KSwS: 0.12 • SI: 94.8%</div>
+            </div>
+          </div>
+
+          <div style="background:rgba(15,23,42,0.6); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+            <div>
+              <label class="form-label" style="margin-bottom:0.2rem;">CP Pathological Patient:</label>
+              <select id="compare-cp-select" class="form-select" style="padding:0.35rem 0.6rem; font-size:0.8rem; width:220px;" onchange="onCompareSubjectChange()">
+                <option value="DiCP1" selected>DiCP1 (Diplegic CP: Crouch & Stiff)</option>
+                <option value="HeCP1">HeCP1 (Hemiplegic CP: Asymmetry)</option>
+              </select>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge badge-cp" id="compare-cp-badge">Diplegic CP</span>
+              <div style="font-size:0.75rem; color:#fca5a5; font-weight:600; margin-top:0.2rem;" id="compare-cp-stats">KSwS: 0.68 • SI: 76.4%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dual 3D Viewports -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.25rem;">
+          <div style="background:#070b14; border-radius:var(--radius-sm); border:1px solid var(--border-color); overflow:hidden;">
+            <div style="font-size:0.8rem; font-weight:700; color:#00f0ff; text-align:center; padding:0.4rem; background:rgba(0,240,255,0.06); border-bottom:1px solid rgba(0,240,255,0.15);">
+              🟢 TD Normative Reference (TD1a)
+            </div>
+            <div id="compare-td" style="height:460px; width:100%;"></div>
+          </div>
+          <div style="background:#070b14; border-radius:var(--radius-sm); border:1px solid var(--border-color); overflow:hidden;">
+            <div style="font-size:0.8rem; font-weight:700; color:#ff4d6d; text-align:center; padding:0.4rem; background:rgba(255,77,109,0.06); border-bottom:1px solid rgba(255,77,109,0.15);" id="compare-cp-title">
+              🔴 CP Pathological (DiCP1 - Spastic Crouch)
+            </div>
+            <div id="compare-cp" style="height:460px; width:100%;"></div>
+          </div>
+        </div>
+
+        <!-- Synchronized Dual Playback Bar -->
+        <div class="playback-bar" style="margin-top:0.75rem; border-radius:var(--radius-sm);">
+          <button id="cmp-btn-play" class="btn-circle" onclick="toggleComparePlay()">⏸</button>
+          <input type="range" id="cmp-frame-scrubber" class="scrubber" min="0" max="59" value="0" oninput="onCompareScrub(this.value)">
+          <div class="frame-counter" id="cmp-frame-counter">Frame: 0 / 59 (0%)</div>
+          <select id="cmp-speed-select" class="form-select" style="width: auto; padding:0.25rem 0.5rem; font-size:0.75rem;" onchange="onCompareSpeedChange(this.value)">
+            <option value="0.25">0.25x (Super Slow-Mo)</option>
+            <option value="0.5">0.5x (Clinical Inspection)</option>
+            <option value="1" selected>1.0x (Real-Time)</option>
+            <option value="2">2.0x (Fast)</option>
+          </select>
+        </div>
+
+        <!-- Comparative Clinical Biomarkers Cards -->
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:0.75rem; margin-top:1rem;">
+          <div class="metric-box">
+            <div class="metric-label">Stance Knee Flexion</div>
+            <div class="metric-value val-cyan" id="cmp-m1">14.2° vs 29.8°</div>
+            <div style="font-size:0.7rem; color:#fca5a5; margin-top:0.2rem;" id="cmp-m1-desc">+15.6° Crouch Contracture</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Peak Swing Knee Flexion</div>
+            <div class="metric-value val-red" id="cmp-m2">63.5° vs 42.1°</div>
+            <div style="font-size:0.7rem; color:#fca5a5; margin-top:0.2rem;" id="cmp-m2-desc">-21.4° Stiff-Knee Deficit</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Initial Contact Foot Angle</div>
+            <div class="metric-value val-amber" id="cmp-m3">+2.8° vs -6.8°</div>
+            <div style="font-size:0.7rem; color:#fca5a5; margin-top:0.2rem;" id="cmp-m3-desc">Equinus Toe Strike</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Bilateral Symmetry Index</div>
+            <div class="metric-value val-green" id="cmp-m4">94.8% vs 76.4%</div>
+            <div style="font-size:0.7rem; color:#fca5a5; margin-top:0.2rem;" id="cmp-m4-desc">18.4% Asymmetry Divergence</div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -751,35 +832,129 @@
   <script>
     // Tab Switching
     function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-nav .tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       
-      const targetBtn = Array.from(document.querySelectorAll('.tab-nav button')).find(b => b.getAttribute('onclick').includes(tabId));
+      const targetBtn = Array.from(document.querySelectorAll('.tab-nav button')).find(b => {
+        const attr = b.getAttribute('onclick');
+        return attr && attr.includes(tabId);
+      });
       if (targetBtn) targetBtn.classList.add('active');
       
       const targetContent = document.getElementById(tabId);
       if (targetContent) targetContent.classList.add('active');
 
-      if (tabId === 'tab-compare' && !window.compareRendered) {
-        initCompareTwins();
-        window.compareRendered = true;
+      if (tabId === 'tab-compare') {
+        if (!window.compareRendered) {
+          initCompareTwins();
+          window.compareRendered = true;
+        } else if (isComparePlaying) {
+          startComparePlayback();
+        }
+        // Pause single twin viewer to preserve GPU/CPU
+        if (playInterval) clearInterval(playInterval);
+      } else if (tabId === 'tab-twin') {
+        if (isPlaying) startPlayback();
+        if (compareInterval) clearInterval(compareInterval);
+      } else {
+        if (playInterval) clearInterval(playInterval);
+        if (compareInterval) clearInterval(compareInterval);
       }
     }
 
-    // 3D Visualizer State
+    // Camera Presets (Normalized: +X = Forward, Y = Lateral, +Z = Cranial Up)
+    const cameras = {
+      sagittal: { eye: { x: 0.0, y: -2.5, z: 0.45 }, up: { x: 0, y: 0, z: 1 } },
+      iso: { eye: { x: 1.7, y: -1.7, z: 1.1 }, up: { x: 0, y: 0, z: 1 } },
+      frontal: { eye: { x: 2.5, y: 0.0, z: 0.45 }, up: { x: 0, y: 0, z: 1 } },
+      transverse: { eye: { x: 0.0, y: 0.0, z: 3.0 }, up: { x: 1, y: 0, z: 0 } }
+    };
+
+    // Shared Ground Floor Grid at Z = 0.0
+    const floorGrid = (() => {
+      const gx = [], gy = [], gz = [];
+      for (let pos = -0.6; pos <= 0.601; pos += 0.2) {
+        gx.push(pos, pos, null, -0.6, 0.6, null);
+        gy.push(-0.6, 0.6, null, pos, pos, null);
+        gz.push(0.0, 0.0, null, 0.0, 0.0, null);
+      }
+      return {
+        type: 'scatter3d',
+        mode: 'lines',
+        x: gx, y: gy, z: gz,
+        line: { color: 'rgba(71, 85, 105, 0.35)', width: 1 },
+        hoverinfo: 'none',
+        showlegend: false
+      };
+    })();
+
+    // Helper: Build Plotly traces for a twin at a given frame
+    function buildTwinTraces(trialKey, frameIdx, boneColor) {
+      const trial = window.MOCAP_DATA[trialKey];
+      if (!trial) return [floorGrid];
+
+      const markers = trial.markers;
+      const nMarkers = trial.labels.length;
+      const connections = trial.connections;
+
+      const xPts = [], yPts = [], zPts = [], colors = [], texts = [];
+      for (let i = 0; i < nMarkers; i++) {
+        const x = markers[0][i][frameIdx];
+        const y = markers[1][i][frameIdx];
+        const z = markers[2][i][frameIdx];
+        if (x === 0 && y === 0 && z === 0) continue;
+        xPts.push(x);
+        yPts.push(y);
+        zPts.push(z);
+        const lbl = trial.labels[i];
+        texts.push(lbl);
+        if (lbl.startsWith('L') && !lbl.startsWith('LB')) colors.push('#00f0ff');
+        else if (lbl.startsWith('R') && !lbl.startsWith('RB')) colors.push('#ff4d6d');
+        else if (lbl.includes('HD') || lbl === 'C7') colors.push('#ffd166');
+        else colors.push('#10b981');
+      }
+
+      const xL = [], yL = [], zL = [];
+      connections.forEach(([i, j]) => {
+        const x1 = markers[0][i][frameIdx], y1 = markers[1][i][frameIdx], z1 = markers[2][i][frameIdx];
+        const x2 = markers[0][j][frameIdx], y2 = markers[1][j][frameIdx], z2 = markers[2][j][frameIdx];
+        if ((x1 === 0 && y1 === 0 && z1 === 0) || (x2 === 0 && y2 === 0 && z2 === 0)) return;
+        xL.push(x1, x2, null);
+        yL.push(y1, y2, null);
+        zL.push(z1, z2, null);
+      });
+
+      return [
+        floorGrid,
+        {
+          type: 'scatter3d',
+          mode: 'lines',
+          x: xL, y: yL, z: zL,
+          line: { color: boneColor || '#94a3b8', width: 4.5 },
+          hoverinfo: 'none',
+          showlegend: false
+        },
+        {
+          type: 'scatter3d',
+          mode: 'markers',
+          x: xPts, y: yPts, z: zPts,
+          marker: { size: 5.5, color: colors, opacity: 0.95 },
+          text: texts,
+          hoverinfo: 'text',
+          showlegend: false
+        }
+      ];
+    }
+
+    // =========================================================================
+    // TAB 1: Single Digital Twin Visualizer
+    // =========================================================================
     let currentTrialKey = 'TD1a';
     let currentFrame = 0;
     let isPlaying = true;
     let playbackSpeed = 1.0;
     let playInterval = null;
     let currentCamera = 'iso';
-
-    const cameras = {
-      iso: { eye: { x: 1.5, y: -1.8, z: 1.2 }, up: { x: 0, y: 0, z: 1 } },
-      sagittal: { eye: { x: 2.8, y: 0.0, z: 0.5 }, up: { x: 0, y: 0, z: 1 } },
-      frontal: { eye: { x: 0.0, y: -2.8, z: 0.5 }, up: { x: 0, y: 0, z: 1 } },
-      transverse: { eye: { x: 0.0, y: -0.01, z: 3.0 }, up: { x: 0, y: 1, z: 0 } }
-    };
 
     function init3DViewer() {
       if (!window.MOCAP_DATA) return;
@@ -788,67 +963,20 @@
     }
 
     function renderFrame(frameIdx) {
-      const trial = window.MOCAP_DATA[currentTrialKey];
-      if (!trial) return;
-
-      const markers = trial.markers; // [3, n_markers, 60]
-      const nMarkers = trial.labels.length;
-      const connections = trial.connections;
-
-      const xPts = [], yPts = [], zPts = [], colors = [], texts = [];
-      for (let i = 0; i < nMarkers; i++) {
-        xPts.push(markers[0][i][frameIdx]);
-        yPts.push(markers[1][i][frameIdx]);
-        zPts.push(markers[2][i][frameIdx]);
-        const lbl = trial.labels[i];
-        texts.push(lbl);
-        if (lbl.startsWith('L') && !lbl.startsWith('LB')) colors.push('#00f0ff');
-        else if (lbl.startsWith('R') && !lbl.startsWith('RB')) colors.push('#ff4d6d');
-        else if (lbl.includes('HD')) colors.push('#ffd166');
-        else colors.push('#10b981');
-      }
-
-      const xLines = [], yLines = [], zLines = [];
-      connections.forEach(([i, j]) => {
-        xLines.push(markers[0][i][frameIdx], markers[0][j][frameIdx], null);
-        yLines.push(markers[1][i][frameIdx], markers[1][j][frameIdx], null);
-        zLines.push(markers[2][i][frameIdx], markers[2][j][frameIdx], null);
-      });
-
-      const traces = [
-        {
-          type: 'scatter3d',
-          mode: 'lines',
-          x: xLines, y: yLines, z: zLines,
-          line: { color: '#94a3b8', width: 4 },
-          hoverinfo: 'none',
-          showlegend: false
-        },
-        {
-          type: 'scatter3d',
-          mode: 'markers',
-          x: xPts, y: yPts, z: zPts,
-          marker: { size: 5, color: colors, opacity: 0.95 },
-          text: texts,
-          hoverinfo: 'text',
-          showlegend: false
-        }
-      ];
-
+      const traces = buildTwinTraces(currentTrialKey, frameIdx, '#38bdf8');
       const layout = {
         paper_bgcolor: '#070b14',
         plot_bgcolor: '#070b14',
         margin: { l: 0, r: 0, b: 0, t: 0 },
         scene: {
-          xaxis: { title: '', range: [-0.6, 0.6], showgrid: true, gridcolor: '#1e293b', zeroline: false, showticklabels: false },
-          yaxis: { title: '', range: [-0.6, 0.6], showgrid: true, gridcolor: '#1e293b', zeroline: false, showticklabels: false },
-          zaxis: { title: '', range: [0, 1.8], showgrid: true, gridcolor: '#1e293b', zeroline: false, showticklabels: false },
+          xaxis: { title: '', range: [-0.7, 0.7], showgrid: true, gridcolor: '#1e293b', zeroline: false, showticklabels: false },
+          yaxis: { title: '', range: [-0.7, 0.7], showgrid: true, gridcolor: '#1e293b', zeroline: false, showticklabels: false },
+          zaxis: { title: '', range: [0.0, 1.6], showgrid: true, gridcolor: '#1e293b', zeroline: true, zerolinecolor: '#38bdf8', showticklabels: false },
           camera: cameras[currentCamera],
           aspectmode: 'manual',
-          aspectratio: { x: 1, y: 1, z: 1.5 }
+          aspectratio: { x: 1, y: 1, z: 1.4 }
         }
       };
-
       Plotly.react('plotly3d', traces, layout, { displayModeBar: false, responsive: true });
     }
 
@@ -883,8 +1011,11 @@
 
     function setCamera(cam) {
       currentCamera = cam;
-      document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
-      const activeBtn = Array.from(document.querySelectorAll('.cam-btn')).find(b => b.getAttribute('onclick').includes(cam));
+      document.querySelectorAll('.viewport-container .cam-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.viewport-container .cam-btn')).find(b => {
+        const attr = b.getAttribute('onclick');
+        return attr && attr.includes(cam);
+      });
       if (activeBtn) activeBtn.classList.add('active');
       renderFrame(currentFrame);
     }
@@ -929,49 +1060,121 @@
       renderFrame(currentFrame);
     }
 
-    // Comparative Twins Renderer
-    function initCompareTwins() {
-      const renderMini = (divId, trialKey, cam) => {
-        const trial = window.MOCAP_DATA[trialKey];
-        if (!trial) return;
-        const markers = trial.markers;
-        const nMarkers = trial.labels.length;
-        const xPts = [], yPts = [], zPts = [], colors = [];
-        for (let i = 0; i < nMarkers; i++) {
-          xPts.push(markers[0][i][15]);
-          yPts.push(markers[1][i][15]);
-          zPts.push(markers[2][i][15]);
-          const lbl = trial.labels[i];
-          if (lbl.startsWith('L') && !lbl.startsWith('LB')) colors.push('#00f0ff');
-          else if (lbl.startsWith('R') && !lbl.startsWith('RB')) colors.push('#ff4d6d');
-          else colors.push('#10b981');
+    // =========================================================================
+    // TAB 2: Synchronized Side-by-Side Comparative Twin
+    // =========================================================================
+    let compareTDKey = 'TD1a';
+    let compareCPKey = 'DiCP1';
+    let compareFrame = 0;
+    let isComparePlaying = true;
+    let compareSpeed = 1.0;
+    let compareCamera = 'sagittal';
+    let compareInterval = null;
+
+    function getCompareLayout() {
+      return {
+        paper_bgcolor: '#070b14',
+        plot_bgcolor: '#070b14',
+        margin: { l: 0, r: 0, b: 0, t: 0 },
+        scene: {
+          xaxis: { title: '', range: [-0.7, 0.7], showgrid: true, gridcolor: '#1e293b', zeroline: false, showticklabels: false },
+          yaxis: { title: '', range: [-0.7, 0.7], showgrid: true, gridcolor: '#1e293b', zeroline: false, showticklabels: false },
+          zaxis: { title: '', range: [0.0, 1.6], showgrid: true, gridcolor: '#1e293b', zeroline: true, zerolinecolor: '#38bdf8', showticklabels: false },
+          camera: cameras[compareCamera],
+          aspectmode: 'manual',
+          aspectratio: { x: 1, y: 1, z: 1.4 }
         }
-        const xL = [], yL = [], zL = [];
-        trial.connections.forEach(([i, j]) => {
-          xL.push(markers[0][i][15], markers[0][j][15], null);
-          yL.push(markers[1][i][15], markers[1][j][15], null);
-          zL.push(markers[2][i][15], markers[2][j][15], null);
-        });
-
-        const traces = [
-          { type: 'scatter3d', mode: 'lines', x: xL, y: yL, z: zL, line: { color: '#94a3b8', width: 3.5 }, showlegend: false },
-          { type: 'scatter3d', mode: 'markers', x: xPts, y: yPts, z: zPts, marker: { size: 4.5, color: colors }, showlegend: false }
-        ];
-        const layout = {
-          paper_bgcolor: '#070b14', plot_bgcolor: '#070b14', margin: { l: 0, r: 0, b: 0, t: 0 },
-          scene: {
-            xaxis: { visible: false, range: [-0.6, 0.6] },
-            yaxis: { visible: false, range: [-0.6, 0.6] },
-            zaxis: { visible: false, range: [0, 1.8] },
-            camera: cameras.sagittal,
-            aspectmode: 'manual', aspectratio: { x: 1, y: 1, z: 1.5 }
-          }
-        };
-        Plotly.newPlot(divId, traces, layout, { displayModeBar: false });
       };
+    }
 
-      renderMini('compare-td', 'TD1a', 'sagittal');
-      renderMini('compare-cp', 'DiCP1', 'sagittal');
+    function renderCompareFrame(f) {
+      const tracesTD = buildTwinTraces(compareTDKey, f, '#00f0ff');
+      const tracesCP = buildTwinTraces(compareCPKey, f, '#ff4d6d');
+      const layout = getCompareLayout();
+      Plotly.react('compare-td', tracesTD, layout, { displayModeBar: false, responsive: true });
+      Plotly.react('compare-cp', tracesCP, layout, { displayModeBar: false, responsive: true });
+    }
+
+    function toggleComparePlay() {
+      isComparePlaying = !isComparePlaying;
+      const btn = document.getElementById('cmp-btn-play');
+      if (btn) btn.innerText = isComparePlaying ? '⏸' : '▶';
+      if (isComparePlaying) startComparePlayback();
+      else clearInterval(compareInterval);
+    }
+
+    function startComparePlayback() {
+      clearInterval(compareInterval);
+      const fps = 25 * compareSpeed;
+      compareInterval = setInterval(() => {
+        compareFrame = (compareFrame + 1) % 60;
+        const scrubber = document.getElementById('cmp-frame-scrubber');
+        if (scrubber) scrubber.value = compareFrame;
+        const counter = document.getElementById('cmp-frame-counter');
+        if (counter) counter.innerText = `Frame: ${compareFrame} / 59 (${Math.round(compareFrame/59*100)}%)`;
+        renderCompareFrame(compareFrame);
+      }, 1000 / fps);
+    }
+
+    function onCompareScrub(val) {
+      compareFrame = parseInt(val);
+      const counter = document.getElementById('cmp-frame-counter');
+      if (counter) counter.innerText = `Frame: ${compareFrame} / 59 (${Math.round(compareFrame/59*100)}%)`;
+      renderCompareFrame(compareFrame);
+    }
+
+    function onCompareSpeedChange(spd) {
+      compareSpeed = parseFloat(spd);
+      if (isComparePlaying) startComparePlayback();
+    }
+
+    function setCompareCamera(cam) {
+      compareCamera = cam;
+      ['sagittal', 'iso', 'frontal'].forEach(c => {
+        const btn = document.getElementById(`cmp-cam-${c}`);
+        if (btn) btn.classList.toggle('active', c === cam);
+      });
+      renderCompareFrame(compareFrame);
+    }
+
+    function onCompareSubjectChange() {
+      compareTDKey = document.getElementById('compare-td-select').value;
+      compareCPKey = document.getElementById('compare-cp-select').value;
+      const cpTrial = window.MOCAP_DATA[compareCPKey];
+      if (cpTrial) {
+        const badge = document.getElementById('compare-cp-badge');
+        const stats = document.getElementById('compare-cp-stats');
+        const title = document.getElementById('compare-cp-title');
+        if (badge) badge.innerText = cpTrial.type;
+        if (stats) stats.innerText = `KSwS: ${cpTrial.ksws.toFixed(2)} • SI: ${cpTrial.si.toFixed(1)}%`;
+        if (title) title.innerText = `🔴 CP Pathological (${cpTrial.name} - ${cpTrial.type})`;
+
+        if (compareCPKey === 'HeCP1') {
+          document.getElementById('cmp-m1').innerText = "14.2° vs 18.5°";
+          document.getElementById('cmp-m1-desc').innerText = "Mild Sagittal Flexion";
+          document.getElementById('cmp-m2').innerText = "63.5° vs 47.2°";
+          document.getElementById('cmp-m2-desc').innerText = "Borderline Stiff Knee";
+          document.getElementById('cmp-m3').innerText = "+2.8° vs -4.2°";
+          document.getElementById('cmp-m3-desc').innerText = "Unilateral Equinus Strike";
+          document.getElementById('cmp-m4').innerText = "94.8% vs 68.2%";
+          document.getElementById('cmp-m4-desc').innerText = "Severe Hemiplegic Asymmetry";
+        } else {
+          document.getElementById('cmp-m1').innerText = "14.2° vs 29.8°";
+          document.getElementById('cmp-m1-desc').innerText = "+15.6° Crouch Contracture";
+          document.getElementById('cmp-m2').innerText = "63.5° vs 42.1°";
+          document.getElementById('cmp-m2-desc').innerText = "-21.4° Stiff-Knee Deficit";
+          document.getElementById('cmp-m3').innerText = "+2.8° vs -6.8°";
+          document.getElementById('cmp-m3-desc').innerText = "Bilateral Equinus Toe Strike";
+          document.getElementById('cmp-m4').innerText = "94.8% vs 76.4%";
+          document.getElementById('cmp-m4-desc').innerText = "18.4% Asymmetry Divergence";
+        }
+      }
+      renderCompareFrame(compareFrame);
+    }
+
+    function initCompareTwins() {
+      renderCompareFrame(0);
+      if (isComparePlaying) startComparePlayback();
     }
 
     // Populate Logbook Table
