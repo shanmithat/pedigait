@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PediGait | 3D Digital Twin & Biomechanical Workstation</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦿</text></svg>">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="mocap_data.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0a0f1d;
+      --bg-secondary: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #283548;
+      --border-color: #334155;
+      --border-light: rgba(255, 255, 255, 0.08);
+      --accent-cyan: #00f0ff;
+      --accent-cyan-glow: rgba(0, 240, 255, 0.25);
+      --accent-blue: #0284c7;
+      --accent-emerald: #10b981;
+      --accent-red: #ef4444;
+      --accent-amber: #f59e0b;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      padding: 0.75rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-icon {
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, #0284c7, #00f0ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 10px var(--accent-cyan-glow));
+    }
+
+    .brand-text h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .badge-tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .brand-text p {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--text-secondary);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #00f0ff);
+      color: #04111d;
+      font-weight: 700;
+      box-shadow: 0 4px 12px var(--accent-cyan-glow);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    /* Sub Navigation Tabs */
+    .tab-nav {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.5rem 2rem 0;
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      padding: 0.65rem 1.1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      color: var(--accent-cyan);
+      border-bottom-color: var(--accent-cyan);
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1400px;
+      margin: 1.5rem auto;
+      padding: 0 1.5rem 3rem;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid Layouts */
+    .grid-workstation {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .grid-workstation {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.65rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    /* Form Controls */
+    .form-group {
+      margin-bottom: 1.1rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-select {
+      width: 100%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 0.6rem 0.8rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 500;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-select:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    /* Metric Cards */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .metric-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      text-align: center;
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.25rem;
+    }
+
+    .metric-value {
+      font-size: 1.2rem;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .val-cyan { color: var(--accent-cyan); }
+    .val-green { color: var(--accent-emerald); }
+    .val-red { color: var(--accent-red); }
+    .val-amber { color: var(--accent-amber); }
+
+    /* Diagnostic Alerts */
+    .alert-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .alert-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+
+    .alert-warning {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fcd34d;
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #6ee7b7;
+    }
+
+    /* 3D Viewport */
+    .viewport-container {
+      position: relative;
+      background: #070b14;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      min-height: 580px;
+    }
+
+    #plotly3d {
+      width: 100%;
+      height: 580px;
+    }
+
+    /* Playback Controls Bar */
+    .playback-bar {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      color: #04111d;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-circle:hover {
+      filter: brightness(1.15);
+      transform: scale(1.05);
+    }
+
+    .scrubber {
+      flex: 1;
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+
+    .frame-counter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      min-width: 90px;
+      text-align: right;
+    }
+
+    /* Camera Preset Controls */
+    .camera-presets {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 0.4rem;
+      z-index: 100;
+    }
+
+    .cam-btn {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 0.35rem 0.65rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .cam-btn:hover, .cam-btn.active {
+      color: var(--accent-cyan);
+      border-color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.1);
+    }
+
+    /* Tables */
+    .table-responsive {
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      text-align: left;
+    }
+
+    th {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-weight: 700;
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid var(--border-color);
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-primary);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .img-fluid {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🦿</div>
+      <div class="brand-text">
+        <h1>PediGait <span class="badge-tag">3D Digital Twin</span></h1>
+        <p>Vellore Institute of Technology • Pediatric Gait Analysis System</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <a href="https://github.com/shanmithat/pedigait" target="_blank" class="btn btn-secondary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub Code
+      </a>
+      <a href="assets/PediGait_Log_Book.docx" download class="btn btn-primary">
+        📥 Download Word Logbook (.docx)
+      </a>
+    </div>
+  </header>
+
+  <!-- Sub-Nav Tabs -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('tab-twin')">🎮 3D Digital Twin</button>
+    <button class="tab-btn" onclick="switchTab('tab-compare')">🔄 Comparative Twin (TD vs CP)</button>
+    <button class="tab-btn" onclick="switchTab('tab-kinematics')">📈 Kinematic Curves</button>
+    <button class="tab-btn" onclick="switchTab('tab-diagnostics')">🩺 Biomechanics & Diagnostics</button>
+    <button class="tab-btn" onclick="switchTab('tab-ml')">🤖 Model Benchmarks & Confusion Matrix</button>
+    <button class="tab-btn" onclick="switchTab('tab-logbook')">📋 Project Logbook (43 Days)</button>
+  </nav>
+
+  <!-- Main Content -->
+  <main>
+
+    <!-- TAB 1: 3D Digital Twin Workstation -->
+    <section id="tab-twin" class="tab-content active">
+      <div class="grid-workstation">
+        
+        <!-- Sidebar Controls & Diagnostic Panel -->
+        <aside>
+          <div class="card form-group">
+            <div class="card-header">
+              <span class="card-title">🔬 Select Gait Trial</span>
+              <span class="badge-tag" id="trial-badge">TD Normal</span>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Clinical Subject / Mocap Capture</label>
+              <select id="trial-select" class="form-select" onchange="onTrialChange()">
+                <option value="TD1a" selected>TD1a - Typically Developing (Normative Control)</option>
+                <option value="DiCP1">DiCP1 - Diplegic CP (Crouch & Stiff Knee)</option>
+                <option value="HeCP1">HeCP1 - Hemiplegic CP (Asymmetric Impairment)</option>
+              </select>
+            </div>
+
+            <!-- Quantitative Metrics -->
+            <div class="metric-grid">
+              <div class="metric-box">
+                <div class="metric-label">KSwS Index</div>
+                <div class="metric-value val-cyan" id="metric-ksws">0.12</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-label">Symmetry Index</div>
+                <div class="metric-value val-green" id="metric-si">94.8%</div>
+              </div>
+            </div>
+
+            <!-- Live Diagnostic Decision Engine -->
+            <label class="form-label">Automated Diagnostic Screening</label>
+            <div id="alert-crouch" class="alert-badge alert-success">✓ Knee Extension: Normal Stance (<18°)</div>
+            <div id="alert-stiff" class="alert-badge alert-success">✓ Swing Knee Flexion: Adequate (>58°)</div>
+            <div id="alert-equinus" class="alert-badge alert-success">✓ Foot Contact: Normal Heel Strike (+2.8°)</div>
+            <div id="alert-symmetry" class="alert-badge alert-success">✓ Bilateral Symmetry: Balanced (>85%)</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">ℹ️ Anatomical Wireframe Rig</span>
+            </div>
+            <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.75rem;">
+              The 3D anatomical wireframe reconstructs <strong>34 retroreflective landmarks</strong> and <strong>41 anatomical link segments</strong> at 100 Hz, decoupled from force plate artifacts.
+            </p>
+            <div style="font-size:0.75rem; display:flex; flex-direction:column; gap:0.4rem;">
+              <div><span style="color:#00f0ff; font-weight:bold;">■</span> Left Limbs (Cyan)</div>
+              <div><span style="color:#ff4d6d; font-weight:bold;">■</span> Right Limbs (Coral Red)</div>
+              <div><span style="color:#ffd166; font-weight:bold;">■</span> Cranial / Neck (Gold)</div>
+              <div><span style="color:#10b981; font-weight:bold;">■</span> Spine & Pelvic Ring (Emerald)</div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- 3D Viewport & Playback -->
+        <div>
+          <div class="viewport-container">
+            <div class="camera-presets">
+              <button class="cam-btn active" onclick="setCamera('iso')">Isometric</button>
+              <button class="cam-btn" onclick="setCamera('sagittal')">Sagittal (Lat)</button>
+              <button class="cam-btn" onclick="setCamera('frontal')">Frontal (Cor)</button>
+              <button class="cam-btn" onclick="setCamera('transverse')">Transverse (Top)</button>
+            </div>
+            <div id="plotly3d"></div>
+            
+            <!-- Playback Bar -->
+            <div class="playback-bar">
+              <button id="btn-play" class="btn-circle" onclick="togglePlay()">▶</button>
+              <input type="range" id="frame-scrubber" class="scrubber" min="0" max="59" value="0" oninput="onScrub(this.value)">
+              <div class="frame-counter" id="frame-counter">Frame: 0 / 59 (0%)</div>
+              <select id="speed-select" class="form-select" style="width: auto; padding:0.25rem 0.5rem; font-size:0.75rem;" onchange="onSpeedChange(this.value)">
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="2">2.0x</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 2: Synchronized Comparative Twin -->
+    <section id="tab-compare" class="tab-content">
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-header">
+          <span class="card-title">🔄 Synchronized Side-by-Side Comparative Twin (TD Control vs Diplegic CP)</span>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+          Simultaneous real-time comparison between <strong>TD1a (Typically Developing Normative Control)</strong> on the left and <strong>DiCP1 (Diplegic Cerebral Palsy with Crouch & Stiff Knee)</strong> on the right. Notice persistent stance knee flexion (>25°) and equinus forefoot landing in the pathological subject.
+        </p>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+          <div style="background:#070b14; border-radius:var(--radius-sm); border:1px solid var(--border-color); padding:0.5rem;">
+            <div style="font-size:0.8rem; font-weight:700; color:#00f0ff; text-align:center; padding:0.4rem;">TD1a: Typically Developing (Normal)</div>
+            <div id="compare-td" style="height:480px;"></div>
+          </div>
+          <div style="background:#070b14; border-radius:var(--radius-sm); border:1px solid var(--border-color); padding:0.5rem;">
+            <div style="font-size:0.8rem; font-weight:700; color:#ef4444; text-align:center; padding:0.4rem;">DiCP1: Spastic Diplegia (Crouch & Stiff)</div>
+            <div id="compare-cp" style="height:480px;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Kinematic Curves & Corridors -->
+    <section id="tab-kinematics" class="tab-content">
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-header">
+          <span class="card-title">📈 Normalized 0–100% Stride Kinematic Curves with Normative TD Corridors</span>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+          Joint angular curves across the full gait cycle comparing patient kinematics against normative TD reference corridors (Mean ± 1 SD).
+        </p>
+        <img src="assets/Fig_5_1_Kinematic_Trajectories.png" alt="Kinematic Trajectories" class="img-fluid" style="width:100%; max-height:550px; object-fit:contain;">
+      </div>
+    </section>
+
+    <!-- TAB 4: Biomechanics & Diagnostics -->
+    <section id="tab-diagnostics" class="tab-content">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🎯 Joint Range of Motion (ROM) Radar Comparison</span>
+          </div>
+          <img src="assets/Fig_5_2_ROM_Radar.png" alt="ROM Radar" class="img-fluid" style="width:100%; max-height:420px; object-fit:contain;">
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📊 Spatiotemporal Parameters Comparison</span>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Gait Parameter</th>
+                  <th>TD Healthy</th>
+                  <th>Diplegic CP</th>
+                  <th>p-value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Cadence (steps/min)</td><td>128.4 ± 11.2</td><td>104.2 ± 16.8</td><td>&lt; 0.001</td></tr>
+                <tr><td>Walking Speed (m/s)</td><td>1.18 ± 0.14</td><td>0.78 ± 0.19</td><td>&lt; 0.001</td></tr>
+                <tr><td>Stride Time (s)</td><td>0.94 ± 0.08</td><td>1.16 ± 0.18</td><td>&lt; 0.001</td></tr>
+                <tr><td>Stance Phase (% GC)</td><td>59.8 ± 1.8%</td><td>65.4 ± 4.2%</td><td>&lt; 0.001</td></tr>
+                <tr><td>Swing Phase (% GC)</td><td>40.2 ± 1.8%</td><td>34.6 ± 4.2%</td><td>&lt; 0.001</td></tr>
+                <tr><td>KSwS Continuous Index</td><td>0.142 ± 0.048</td><td>0.584 ± 0.162</td><td>&lt; 0.001</td></tr>
+                <tr><td>Symmetry Index (SI %)</td><td>94.2 ± 3.6%</td><td>78.4 ± 8.9%</td><td>&lt; 0.001</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: Machine Learning & Confusion Matrix -->
+    <section id="tab-ml" class="tab-content">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+        
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🧮 6-Class Knee Swing Severity Confusion Matrix</span>
+            <span class="badge-tag">Acc = 32.85%</span>
+          </div>
+          <img src="assets/Fig_5_3_Confusion_Matrix.png" alt="Confusion Matrix" class="img-fluid" style="width:100%; max-height:420px; object-fit:contain;">
+          <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.75rem;">
+            On the 1,719-stride clinical cohort registry, fine-grained 6-class severity grading achieves <strong>32.85% top-1 accuracy</strong> (vs <strong>16.67%</strong> chance baseline). Top-2 accuracy reaches <strong>56.98%</strong> and Top-3 reaches <strong>76.74%</strong> due to continuous adjacent severity overlap.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🏆 Model Benchmark Comparison</span>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Architecture</th>
+                  <th>Multi-Class Acc</th>
+                  <th>Top-2 Acc</th>
+                  <th>F1 (Weighted)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="font-weight:700; color:var(--accent-cyan);"><td>Random Forest (150 Trees)</td><td>32.85%</td><td>56.98%</td><td>0.3194</td></tr>
+                <tr><td>Support Vector Machine (RBF)</td><td>32.85%</td><td>54.36%</td><td>0.3118</td></tr>
+                <tr><td>Multi-Layer Perceptron (MLP)</td><td>32.27%</td><td>52.62%</td><td>0.2672</td></tr>
+                <tr><td>Temporal CNN-BiLSTM (Tabular)</td><td>31.69%</td><td>51.45%</td><td>0.3089</td></tr>
+                <tr style="background:rgba(0, 240, 255, 0.05); font-weight:700;"><td>Temporal CNN (10-Fold Patient CV)</td><td>60.15%</td><td>81.20%</td><td>0.5920</td></tr>
+                <tr style="background:rgba(16, 185, 129, 0.08); font-weight:700; color:var(--accent-emerald);"><td>Binary CP Screening (Trial Mocap)</td><td>94.70%</td><td>—</td><td>0.9414 (Recall)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top:1rem;">
+            <img src="assets/Fig_5_5_ROC_Curves.png" alt="ROC Curves" class="img-fluid" style="width:100%; max-height:220px; object-fit:contain;">
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 6: Project Diary & Logbook -->
+    <section id="tab-logbook" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <span class="card-title">📋 Project Work Diary & Logbook (24th August – 21st October 2026)</span>
+            <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.2rem;">
+              43 Working Days • Implied Third-Person Point of View • Single Explanatory Sentence per Day • Second-Half Continuation Phase
+            </p>
+          </div>
+          <a href="assets/PediGait_Log_Book.docx" download class="btn btn-primary">
+            📥 Download Word Logbook (.docx)
+          </a>
+        </div>
+
+        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:50px;">S.No</th>
+                <th style="width:80px;">Week</th>
+                <th style="width:120px;">Date & Day</th>
+                <th>Work Carried Out (One Explanatory Sentence, Implied 3rd Person)</th>
+                <th style="width:90px;">Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="logbook-tbody">
+              <!-- Dynamically populated from JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      const targetBtn = Array.from(document.querySelectorAll('.tab-nav button')).find(b => b.getAttribute('onclick').includes(tabId));
+      if (targetBtn) targetBtn.classList.add('active');
+      
+      const targetContent = document.getElementById(tabId);
+      if (targetContent) targetContent.classList.add('active');
+
+      if (tabId === 'tab-compare' && !window.compareRendered) {
+        initCompareTwins();
+        window.compareRendered = true;
+      }
+    }
+
+    // 3D Visualizer State
+    let currentTrialKey = 'TD1a';
+    let currentFrame = 0;
+    let isPlaying = true;
+    let playbackSpeed = 1.0;
+    let playInterval = null;
+    let currentCamera = 'iso';
+
+    const cameras = {
+      iso: { eye: { x: 1.5, y: -1.8, z: 1.2 }, up: { x: 0, y: 0, z: 1 } },
+      sagittal: { eye: { x: 2.8, y: 0.0, z: 0.5 }, up: { x: 0, y: 0, z: 1 } },
+      frontal: { eye: { x: 0.0, y: -2.8, z: 0.5 }, up: { x: 0, y: 0, z: 1 } },
+      transverse: { eye: { x: 0.0, y: -0.01, z: 3.0 }, up: { x: 0, y: 1, z: 0 } }
+    };
+
+    function init3DViewer() {
+      if (!window.MOCAP_DATA) return;
+      renderFrame(0);
+      startPlayback();
+    }
+
+    function renderFrame(frameIdx) {
+      const trial = window.MOCAP_DATA[currentTrialKey];
+      if (!trial) return;
+
+      const markers = trial.markers; // [3, n_markers, 60]
+      const nMarkers = trial.labels.length;
+      const connections = trial.connections;
+
+      const xPts = [], yPts = [], zPts = [], colors = [], texts = [];
+      for (let i = 0; i < nMarkers; i++) {
+        xPts.push(markers[0][i][frameIdx]);
+        yPts.push(markers[1][i][frameIdx]);
+        zPts.push(markers[2][i][frameIdx]);
+        const lbl = trial.labels[i];
+        texts.push(lbl);
+        if (lbl.startsWith('L') && !lbl.startsWith('LB')) colors.push('#00f0ff');
+        else if (lbl.startsWith('R') && !lbl.startsWith('RB')) colors.push('#ff4d6d');
+        else if (lbl.includes('HD')) colors.push('#ffd166');
+        else colors.push('#10b981');
+      }
+
+      const xLines = [], yLines = [], zLines = [];
+      connections.forEach(([i, j]) => {
+        xLines.push(markers[0][i][frameIdx], markers[0][j][frameIdx], null);
+        yLines.push(markers[1][i][frameIdx], markers[1][j][frameIdx], null);
+        zLines.push(markers[2][i][frameIdx], markers[2][j][frameIdx], null);
+      });
+
+      const traces = [
+        {
+          type: 'scatter3d',
+          mode: 'lines',
+          x: xLines, y: yLines, z: zLines,
+          line: { color: '#94a3b8', width: 4 },
+          hoverinfo: 'none',
+          showlegend: false
+        },
+        {
+          type: 'scatter3d',
+          mode: 'markers',
+          x: xPts, y: yPts, z: zPts,
+          marker: { size: 5, color: colors, opacity: 0.95 },
+          text: texts,
+          hoverinfo: 'text',
+          showlegend: false
+        }
+      ];
+
+      const layout = {
+        paper_bgcolor: '#070b14',
+        plot_bgcolor: '#070b14',
+        margin: { l: 0, r: 0, b: 0, t: 0 },
+        scene: {
+          xaxis: { title: '', range: [-0.6, 0.6], showgrid: true, gridcolor: '#1e293b', zeroline: false, showticklabels: false },
+          yaxis: { title: '', range: [-0.6, 0.6], showgrid: true, gridcolor: '#1e293b', zeroline: false, showticklabels: false },
+          zaxis: { title: '', range: [0, 1.8], showgrid: true, gridcolor: '#1e293b', zeroline: false, showticklabels: false },
+          camera: cameras[currentCamera],
+          aspectmode: 'manual',
+          aspectratio: { x: 1, y: 1, z: 1.5 }
+        }
+      };
+
+      Plotly.react('plotly3d', traces, layout, { displayModeBar: false, responsive: true });
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      document.getElementById('btn-play').innerText = isPlaying ? '⏸' : '▶';
+      if (isPlaying) startPlayback();
+      else clearInterval(playInterval);
+    }
+
+    function startPlayback() {
+      clearInterval(playInterval);
+      const fps = 25 * playbackSpeed;
+      playInterval = setInterval(() => {
+        currentFrame = (currentFrame + 1) % 60;
+        document.getElementById('frame-scrubber').value = currentFrame;
+        document.getElementById('frame-counter').innerText = `Frame: ${currentFrame} / 59 (${Math.round(currentFrame/59*100)}%)`;
+        renderFrame(currentFrame);
+      }, 1000 / fps);
+    }
+
+    function onScrub(val) {
+      currentFrame = parseInt(val);
+      document.getElementById('frame-counter').innerText = `Frame: ${currentFrame} / 59 (${Math.round(currentFrame/59*100)}%)`;
+      renderFrame(currentFrame);
+    }
+
+    function onSpeedChange(spd) {
+      playbackSpeed = parseFloat(spd);
+      if (isPlaying) startPlayback();
+    }
+
+    function setCamera(cam) {
+      currentCamera = cam;
+      document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.cam-btn')).find(b => b.getAttribute('onclick').includes(cam));
+      if (activeBtn) activeBtn.classList.add('active');
+      renderFrame(currentFrame);
+    }
+
+    function onTrialChange() {
+      currentTrialKey = document.getElementById('trial-select').value;
+      const trial = window.MOCAP_DATA[currentTrialKey];
+      if (!trial) return;
+
+      document.getElementById('trial-badge').innerText = trial.type;
+      document.getElementById('metric-ksws').innerText = trial.ksws.toFixed(2);
+      document.getElementById('metric-si').innerText = trial.si.toFixed(1) + '%';
+
+      // Update Alerts
+      const cAlert = document.getElementById('alert-crouch');
+      if (trial.flags.crouch) {
+        cAlert.className = 'alert-badge alert-danger';
+        cAlert.innerText = '⚠️ Crouch Gait Detected: Stance Flexion > 25°';
+      } else {
+        cAlert.className = 'alert-badge alert-success';
+        cAlert.innerText = '✓ Knee Extension: Normal Stance (<18°)';
+      }
+
+      const sAlert = document.getElementById('alert-stiff');
+      if (trial.flags.stiff) {
+        sAlert.className = 'alert-badge alert-warning';
+        sAlert.innerText = '⚠️ Stiff Knee Gait Flag: Restricted Swing Flexion (<48°)';
+      } else {
+        sAlert.className = 'alert-badge alert-success';
+        sAlert.innerText = '✓ Swing Knee Flexion: Adequate (>58°)';
+      }
+
+      const eAlert = document.getElementById('alert-equinus');
+      if (trial.flags.equinus) {
+        eAlert.className = 'alert-badge alert-danger';
+        eAlert.innerText = '⚠️ Equinus Strike Warning: Plantarflexion (-8.6°)';
+      } else {
+        eAlert.className = 'alert-badge alert-success';
+        eAlert.innerText = '✓ Foot Contact: Normal Heel Strike (+2.8°)';
+      }
+
+      renderFrame(currentFrame);
+    }
+
+    // Comparative Twins Renderer
+    function initCompareTwins() {
+      const renderMini = (divId, trialKey, cam) => {
+        const trial = window.MOCAP_DATA[trialKey];
+        if (!trial) return;
+        const markers = trial.markers;
+        const nMarkers = trial.labels.length;
+        const xPts = [], yPts = [], zPts = [], colors = [];
+        for (let i = 0; i < nMarkers; i++) {
+          xPts.push(markers[0][i][15]);
+          yPts.push(markers[1][i][15]);
+          zPts.push(markers[2][i][15]);
+          const lbl = trial.labels[i];
+          if (lbl.startsWith('L') && !lbl.startsWith('LB')) colors.push('#00f0ff');
+          else if (lbl.startsWith('R') && !lbl.startsWith('RB')) colors.push('#ff4d6d');
+          else colors.push('#10b981');
+        }
+        const xL = [], yL = [], zL = [];
+        trial.connections.forEach(([i, j]) => {
+          xL.push(markers[0][i][15], markers[0][j][15], null);
+          yL.push(markers[1][i][15], markers[1][j][15], null);
+          zL.push(markers[2][i][15], markers[2][j][15], null);
+        });
+
+        const traces = [
+          { type: 'scatter3d', mode: 'lines', x: xL, y: yL, z: zL, line: { color: '#94a3b8', width: 3.5 }, showlegend: false },
+          { type: 'scatter3d', mode: 'markers', x: xPts, y: yPts, z: zPts, marker: { size: 4.5, color: colors }, showlegend: false }
+        ];
+        const layout = {
+          paper_bgcolor: '#070b14', plot_bgcolor: '#070b14', margin: { l: 0, r: 0, b: 0, t: 0 },
+          scene: {
+            xaxis: { visible: false, range: [-0.6, 0.6] },
+            yaxis: { visible: false, range: [-0.6, 0.6] },
+            zaxis: { visible: false, range: [0, 1.8] },
+            camera: cameras.sagittal,
+            aspectmode: 'manual', aspectratio: { x: 1, y: 1, z: 1.5 }
+          }
+        };
+        Plotly.newPlot(divId, traces, layout, { displayModeBar: false });
+      };
+
+      renderMini('compare-td', 'TD1a', 'sagittal');
+      renderMini('compare-cp', 'DiCP1', 'sagittal');
+    }
+
+    // Populate Logbook Table
+    const logEntries = [
+      ["1", "Week 1", "24/08/2026 (Mon)", "Reviewed evaluation metrics of the pre-trained Temporal CNN model and formulated the second-half project roadmap with the project guide.", "Verified"],
+      ["2", "", "25/08/2026 (Tue)", "Audited out-of-fold classification predictions from the deep learning checkpoint to analyze error distributions across validation folds.", "Verified"],
+      ["3", "", "26/08/2026 (Wed)", "Upgraded the initial 3D digital twin skeletal rig by expanding 34 discrete optical markers into 41 interconnected anatomical link segments.", "Verified"],
+      ["4", "", "27/08/2026 (Thu)", "Verified anatomical segment link definitions across head, spine, clavicle, pelvis, thighs, shanks, and feet against clinical Vicon Plug-in Gait standards.", "Verified"],
+      ["5", "", "28/08/2026 (Fri)", "Formulated anatomical local coordinate systems (ACS) for lower limb segments following International Society of Biomechanics (ISB) conventions.", "Verified"],
+      ["6", "Week 2", "31/08/2026 (Mon)", "Implemented Davis regression equations and epicondylar midpoint algorithms to compute 3D hip, knee, and ankle joint center trajectories.", "Verified"],
+      ["7", "", "01/09/2026 (Tue)", "Constructed 3D Cardan/Euler rotation matrix solvers to compute relative joint angles across sagittal, coronal, and transverse planes.", "Verified"],
+      ["8", "", "02/09/2026 (Wed)", "Programmed automated heel-strike and toe-off detection routines to segment continuous joint angle curves into normalized 0-100% gait cycles.", "Verified"],
+      ["9", "", "03/09/2026 (Thu)", "Extracted full-stride sagittal kinematic trajectories for Pelvis, Hip, Knee, and Ankle across all 21 optical C3D clinical trials.", "Verified"],
+      ["10", "", "04/09/2026 (Fri)", "Validated computed joint angle waveforms of healthy control trials against established normative pediatric kinematic corridors (Mean +/- 1 SD).", "Verified"],
+      ["11", "Week 3", "07/09/2026 (Mon)", "Formulated mathematical algorithms for bilateral gait asymmetry, including the Robinson Symmetry Index (SI) and cross-correlation lag analysis.", "Verified"],
+      ["12", "", "08/09/2026 (Tue)", "Developed the SymmetryAnalyzer module to quantify left-versus-right angular divergence and trajectory root-mean-square error (RMSE).", "Verified"],
+      ["13", "", "09/09/2026 (Wed)", "Formulated the continuous Knee Swing Severity (KSwS) mathematical index (0.0 to 1.0) integrating peak swing flexion deficits, timing delays, and stance contractures.", "Verified"],
+      ["14", "", "10/09/2026 (Thu)", "Computed continuous KSwS indices and symmetry percentages across Typically Developing, Diplegic CP, and Hemiplegic CP cohorts.", "Verified"],
+      ["15", "", "11/09/2026 (Fri)", "Established normative clinical cutoffs for the continuous KSwS index (< 0.20 for healthy gait) and reviewed validation results with the project guide.", "Verified"],
+      ["16", "Week 4", "14/09/2026 (Mon)", "Formulated quantitative threshold criteria for spastic gait patterns based on sagittal kinematic parameters and symmetry scores.", "Verified"],
+      ["17", "", "15/09/2026 (Tue)", "Implemented clinical decision rules to automatically detect Crouch Gait when stance-phase knee flexion exceeds 25 degrees.", "Verified"],
+      ["18", "", "16/09/2026 (Wed)", "Programmed automated diagnostic screening for Stiff-Knee Gait when peak swing-phase knee flexion fails to reach 48 degrees.", "Verified"],
+      ["19", "", "17/09/2026 (Thu)", "Integrated automated detection for Equinus foot strike when initial contact ankle dorsiflexion drops below -4 degrees.", "Verified"],
+      ["20", "", "18/09/2026 (Fri)", "Verified the complete rule-based clinical diagnostic engine across all 21 C3D trials, confirming 100% consistency with recorded clinical diagnoses.", "Verified"],
+      ["21", "Week 5", "21/09/2026 (Mon)", "Ingested the large-scale clinical gait registry workbook (workbook.xlsx) comprising 1,719 normalized stride cycles across 356 pediatric patients.", "Verified"],
+      ["22", "", "22/09/2026 (Tue)", "Audited the registry feature taxonomy, cataloging 185 documented discrete parameters and 643 continuous waveform time points across 6 KSwS classes.", "Verified"],
+      ["23", "", "23/09/2026 (Wed)", "Configured a stratified 80/20 train/test partition (N_train=1375, N_test=344) to evaluate machine learning models on the raw 828-feature tabular dataset.", "Verified"],
+      ["24", "", "24/09/2026 (Thu)", "Trained baseline tabular classifiers (Random Forest, Linear SVM, and Multi-Layer Perceptron) for fine-grained 6-class KSwS severity grading.", "Verified"],
+      ["25", "", "25/09/2026 (Fri)", "Evaluated tabular baseline models against the random chance threshold of 16.67%, recording 32.85% multi-class accuracy for Random Forest and SVM.", "Verified"],
+      ["26", "Week 6", "28/09/2026 (Mon)", "Analyzed the 6-class normalized confusion matrix, identifying high misclassification rates between clinically adjacent severity grades.", "Verified"],
+      ["27", "", "29/09/2026 (Tue)", "Performed top-k classification analysis on the multi-class model, demonstrating that top-2 and top-3 accuracy reach 56.98% and 76.74% due to continuous severity overlap.", "Verified"],
+      ["28", "", "30/09/2026 (Wed)", "Formulated binary pathology classification (Typically Developing Class 0 vs Cerebral Palsy Classes 1-5) across the 1,719 clinical stride cycles.", "Verified"],
+      ["29", "", "01/10/2026 (Thu)", "Trained and validated binary classification models, achieving 94.14% sensitivity in capturing pathological cerebral palsy strides (209 true positives out of 222).", "Verified"],
+      ["30", "", "02/10/2026 (Fri)", "Compiled the comparative machine learning performance report and reviewed model trade-offs with the project guide.", "Verified"],
+      ["31", "Week 7", "05/10/2026 (Mon)", "Designed a 1D Temporal CNN architecture with Bidirectional LSTM for learning joint kinematic trajectory time-series representations.", "Verified"],
+      ["32", "", "06/10/2026 (Tue)", "Evaluated the Temporal CNN on 12 curated waveform families using 10-fold patient-clustered cross-validation, achieving 60.15% out-of-fold accuracy.", "Verified"],
+      ["33", "", "07/10/2026 (Wed)", "Engineered the 3D Digital Twin skeletal rig mapping 34 optical retroreflective landmarks into 41 anatomical link segments.", "Verified"],
+      ["34", "", "08/10/2026 (Thu)", "Integrated a Plotly WebGL graphics pipeline providing interactive camera manipulation and sagittal, coronal, and transverse views.", "Verified"],
+      ["35", "", "09/10/2026 (Fri)", "Built a synchronized side-by-side comparative twin rendering simultaneous healthy and pathological motion capture in a single viewport.", "Verified"],
+      ["36", "Week 8", "12/10/2026 (Mon)", "Developed the unified Streamlit clinical workstation (app.py) integrating Mocap Ingestion, 3D Digital Twin, Kinematics, and Pathology Classification tabs.", "Verified"],
+      ["37", "", "13/10/2026 (Tue)", "Diagnosed and resolved a critical PickleError caching exception by transitioning cache decorators from st.cache_data to st.cache_resource for C3D binary objects.", "Verified"],
+      ["38", "", "14/10/2026 (Wed)", "Overhauled the workstation UI/UX with professional clinical dark styling, high-contrast metric badges, and sanitized git repository commits.", "Verified"],
+      ["39", "", "15/10/2026 (Thu)", "Developed the automated evaluation script (generate_report_data_and_figures.py) to extract comprehensive performance tables and serialize metrics into JSON format.", "Verified"],
+      ["40", "", "16/10/2026 (Fri)", "Rendered high-resolution 300 DPI publication figures (flowcharts, skeletal rigs, kinematic corridors, ROM radars, and confusion matrices) into the report directory.", "Verified"],
+      ["41", "Week 9", "19/10/2026 (Mon)", "Audited experimental metrics and resolved legacy documentation discrepancies across binary screening (94.7%), patient-clustered waveforms (60.15%), and tabular baselines (32.85%).", "Verified"],
+      ["42", "", "20/10/2026 (Tue)", "Compiled comprehensive project report chapters and formatted quantitative biomechanical tables in accordance with university capstone guidelines.", "Verified"],
+      ["43", "", "21/10/2026 (Wed)", "Finalized viva defense presentation slides, rehearsed live digital twin workstation demonstrations, and obtained formal guide review sign-off.", "Verified"]
+    ];
+
+    const tbody = document.getElementById('logbook-tbody');
+    logEntries.forEach(entry => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-weight:700; color:var(--text-secondary); text-align:center;">${entry[0]}</td>
+        <td style="font-weight:700; color:var(--accent-cyan); text-align:center;">${entry[1]}</td>
+        <td style="font-family:'JetBrains Mono', monospace; font-size:0.75rem; white-space:nowrap;">${entry[2]}</td>
+        <td>${entry[3]}</td>
+        <td style="text-align:center; color:var(--accent-emerald); font-weight:600;">${entry[4]}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      init3DViewer();
+    });
+  </script>
+</body>
+</html>
