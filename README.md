@@ -562,7 +562,7 @@ If you use PediGait in academic or research work, please cite:
 
 ```bibtex
 @misc{pedigait,
-  author       = {Shanmitha T},
+  author       = {Shanmitha T and Rhea Ann Rajiv},
   title        = {PediGait: Pediatric Gait Digital Twin and Biomechanical Analysis Platform},
   year         = {2026},
   howpublished = {GitHub},
