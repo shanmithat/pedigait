@@ -1,169 +1,408 @@
 # PediGait: 3D Digital Twin & Biomechanical Workstation
 
-[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Demo-00f0ff?style=for-the-badge&logo=github)](https://shanmithat.github.io/pedigait/)
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/shanmithat/pedigait/main/app.py)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
+PediGait is an end-to-end computational framework for pediatric gait analysis using 3D optical motion-capture data. The project combines C3D processing, lower-limb kinematic analysis, interactive 3D digital-twin visualization, gait symmetry assessment, Knee Swing Symmetry/Severity (KSwS) analysis, TD-versus-CP comparison, and machine-learning-based gait classification.
 
-> 🌐 **Live Web Application & Interactive 3D Digital Twin:**  
-> **[https://shanmithat.github.io/pedigait/](https://shanmithat.github.io/pedigait/)**
+> Research prototype: PediGait is intended for engineering research, biomechanical analysis, visualization, and decision-support research. It is not a clinically validated diagnostic device and should not be used as a substitute for assessment by a qualified clinician.
 
-An end-to-end computational framework and clinical workstation for analyzing pediatric gait patterns using 3D optical motion capture data (Vicon C3D files). Provides automated kinematic processing, interactive 3D digital twin visualization, Knee Swing Severity (KSwS) grading, and deep learning locomotion classification.
+## Live Application
 
-## Features
+https://shanmithat.github.io/pedigait/
 
-### 1. **Kinematic Analysis**
-- Extract joint motion trajectories (Pelvis, Hip, Knee, Ankle, Foot)
-- Calculate joint angles, angular velocities, and ranges of motion
-- Process gait cycle data from C3D motion capture files
+## Project Overview
 
-### 2. **3D Digital Twin Visualizer**
-- Create interactive 3D skeletal visualizations
-- Wireframe connections between key markers (ASIS, PSIS, Thigh, Knee, Tibia, Ankle, Heel, Toe)
-- Side-by-side comparisons of TD vs CP gait patterns
-- Export animations to HTML for interactive viewing
+PediGait provides a unified workflow for transforming motion-capture data into interpretable biomechanical information.
 
-### 3. **Locomotion Classification**
-- Temporal CNN for classifying gait patterns
-- Knee Swing Symmetry/Severity (KSwS) index calculation
-- Classification into: Normal, Mild, Moderate, Severe, Highly Pathological
-- Tabular baseline classifiers for comparison
+The platform supports:
 
-### 4. **Comparative Analysis**
-- Quantitative comparison between TD and CP gait
-- Range of motion deviations
-- Symmetry analysis
-- Trajectory similarity metrics
+- C3D motion-capture file processing
+- Lower-limb and pelvis kinematic analysis
+- Gait-cycle normalization
+- Interactive 3D skeletal visualization
+- Bilateral gait symmetry analysis
+- Knee Swing Symmetry/Severity (KSwS) assessment
+- TD versus CP comparative analysis
+- Gait-pattern and pathology flagging
+- Machine-learning-based gait classification
+- Cohort-level analysis
+- Exportable analysis results
+
+## System Workflow
+
+```text
+C3D Motion-Capture Data
+          |
+          v
+     C3D Loader
+          |
+          v
+Marker Identification and Processing
+          |
+          v
+   Kinematic Processor
+          |
+     +----+----+----------------+
+     |         |                |
+     v         v                v
+Kinematics  Symmetry/KSwS   Marker Data
+     |         |                |
+     +---------+----------------+
+               |
+        +------+------+
+        |             |
+        v             v
+  ML Classification  3D Digital Twin
+        |             |
+        +------+------+
+               |
+               v
+       Interactive Analysis
+```
+
+## Key Features
+
+### 1. Kinematic Analysis
+
+The processing pipeline extracts and analyzes:
+
+- Pelvis motion
+- Hip motion
+- Knee motion
+- Ankle motion
+- Foot motion
+- Joint trajectories
+- Joint angles
+- Range of motion
+- Angular kinematic information where available
+
+The system can use pre-calculated joint-angle channels contained in C3D files and can also calculate biomechanical quantities from marker geometry.
+
+### 2. C3D Motion-Capture Processing
+
+PediGait uses `ezc3d` to process standard biomechanical C3D files.
+
+The loader extracts:
+
+- Optical marker positions
+- Marker labels
+- Point sampling frequency
+- Available analog channels
+- Measurement units
+- Pre-calculated joint-angle channels when present
+
+The processing pipeline distinguishes optical marker trajectories from non-marker channels such as forces, moments, powers, and calculated biomechanical signals.
+
+### 3. 3D Digital Twin
+
+The project provides an interactive 3D representation of recorded movement using optical motion-capture markers.
+
+The digital twin supports:
+
+- Interactive Plotly visualization
+- Skeletal wireframe reconstruction
+- Marker labels
+- Frame-by-frame playback
+- Interactive camera controls
+- Multiple viewing orientations
+- Side-by-side TD versus CP comparison
+- Exportable HTML animations
+
+### 4. Gait-Cycle Analysis
+
+Joint trajectories can be normalized to a common 0-100% gait-cycle representation.
+
+This allows gait patterns with different recording durations to be compared on a common temporal scale.
+
+The application supports analysis of:
+
+- Sagittal-plane motion
+- Frontal-plane motion
+- Transverse-plane motion
+- Bilateral trajectories
+- Range of motion
+- Gait-cycle patterns
+
+### 5. Symmetry Analysis
+
+PediGait evaluates left-right gait symmetry using quantitative trajectory comparisons.
+
+The analysis includes:
+
+- Symmetry Index
+- Asymmetry measures
+- Pearson correlation
+- Mean absolute differences
+- Normalized trajectory error
+
+The implemented symmetry calculations compare corresponding left and right gait trajectories.
+
+### 6. Knee Swing Symmetry/Severity (KSwS)
+
+KSwS is used to quantify knee-swing characteristics and bilateral gait differences.
+
+The application provides a continuous KSwS index and severity classification.
+
+The current classification bands implemented by the application are:
+
+| KSwS Index | Classification |
+|---:|---|
+| 0.00-0.20 | Normal |
+| 0.20-0.40 | Mild |
+| 0.40-0.60 | Moderate |
+| 0.60-0.80 | Severe |
+| 0.80-1.00 | Critical |
+
+The system also evaluates gait patterns including:
+
+- Crouch gait
+- Stiff-knee gait
+- Asymmetric gait
+- Jump gait
+- Apparent equinus
+
+These automated flags are research and decision-support indicators rather than independent clinical diagnoses.
+
+## Machine Learning
+
+PediGait includes supervised machine-learning experiments for gait-pattern and KSwS classification.
+
+### Temporal CNN-BiLSTM
+
+The main temporal model combines one-dimensional temporal convolution with a bidirectional LSTM.
+
+```text
+Input gait sequence
+       |
+       v
+Temporal Conv1D
+       |
+Batch Normalization
+       |
+GELU Activation
+       |
+Dropout
+       |
+Temporal Conv1D
+       |
+Batch Normalization
+       |
+GELU Activation
+       |
+Dropout
+       |
+Bidirectional LSTM
+       |
+Fully Connected Layer
+       |
+Classification Output
+```
+
+The implementation uses temporal convolution layers followed by a two-layer bidirectional LSTM and fully connected classification layers.
+
+### Research Evaluation
+
+The project notebook contains a patient-separated 10-fold evaluation of the temporal model.
+
+Reported dataset:
+
+| Parameter | Value |
+|---|---:|
+| Gait cycles | 1,719 |
+| Patients | 356 |
+| Cross-validation folds | 10 |
+| Classification task | 6-class KSwS |
+
+Reported overall Temporal CNN results:
+
+| Metric | Score |
+|---|---:|
+| Accuracy | 59.86% |
+| Balanced Accuracy | 62.74% |
+| Macro F1 | 58.89% |
+
+A Logistic Regression baseline reported in the research notebook achieved:
+
+| Model | Accuracy | Balanced Accuracy | Macro F1 |
+|---|---:|---:|---:|
+| Logistic Regression | 55.38% | 54.86% | 53.02% |
+| Temporal CNN | 59.86% | 62.74% | 58.89% |
+
+These results represent research-stage model evaluation and should not be interpreted as clinical validation.
+
+## TD vs CP Comparative Analysis
+
+PediGait includes a dedicated comparative analysis pipeline for typically developing (TD) and cerebral palsy (CP) gait.
+
+The analysis can compare:
+
+- Joint trajectories
+- Sagittal range of motion
+- Frontal range of motion
+- Transverse range of motion
+- Mean joint angles
+- Variability
+- Bilateral symmetry
+- Trajectory similarity
+
+This provides quantitative comparison of gait patterns in addition to visual inspection.
+
+## Interactive Streamlit Workstation
+
+The main application is implemented in `app.py` using Streamlit.
+
+The workstation provides access to:
+
+1. 3D digital-twin visualization
+2. Kinematic trajectories and gait-cycle analysis
+3. KSwS severity and gait-pattern analysis
+4. Comparative cohort analytics
+5. Biomechanical processing and verification
+
+The application also supports uploading a custom C3D trial for analysis.
 
 ## Installation
 
+### Clone the repository
+
 ```bash
-# Clone the repository
 git clone https://github.com/shanmithat/pedigait.git
 cd pedigait
+```
 
-# Create virtual environment (recommended)
+### Create a virtual environment
+
+Windows:
+
+```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+venv\Scripts\activate
+```
 
-# Install dependencies
+macOS/Linux:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### Install dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
-# Install in development mode
+### Install PediGait in development mode
+
+```bash
 pip install -e .
 ```
 
-## Quick Start
+## Running the Application
 
-### 1. Launch the Interactive 3D Presentation Dashboard (Recommended)
-
-Run the modern clinical presentation application with full 3D digital twin playback, side-by-side synchronized comparison, and automated gait pathology detection:
+Launch the Streamlit workstation:
 
 ```bash
 streamlit run app.py
 ```
-Or with Python module syntax:
+
+or:
+
 ```bash
 python -m streamlit run app.py
 ```
 
-### 2. Using the Command-Line Interface
+## Command-Line Interface
+
+The package also provides command-line workflows.
+
+Run the complete analysis pipeline:
 
 ```bash
-# Run complete analysis pipeline
 python -m pedigait --input data/c3d_files --output outputs --all
+```
 
-# Process a single file
+Process a single file:
+
+```bash
 python -m pedigait --input data/c3d_files --sample-file TD1a.c3d --output outputs --visualize
+```
 
-# Run comparative analysis
+Run comparative analysis:
+
+```bash
 python -m pedigait --input data/c3d_files --output outputs --comparative --visualize
+```
 
-# Run classification
+Run classification:
+
+```bash
 python -m pedigait --input data/c3d_files --output outputs --classify
 ```
 
-### Using the Python API
+## Python API
+
+Core components can also be used directly from Python:
 
 ```python
-from pathlib import Path
 from pedigait.data.c3d_loader import C3DLoader
 from pedigait.data.kinematic_processor import KinematicProcessor
 from pedigait.visualization.digital_twin_3d import DigitalTwinVisualizer
 from pedigait.analysis.symmetry_analysis import SymmetryAnalyzer
 
-# Load C3D file
 loader = C3DLoader("data/TD1a.c3d")
 loader.load()
 
-# Process kinematic data
 processor = KinematicProcessor(loader.point_rate)
+
 kinematic_data = processor.process_marker_data(
     loader.get_marker_positions(),
     loader.get_marker_labels()
 )
 
-# Analyze symmetry
 symmetry_analyzer = SymmetryAnalyzer()
 ksws_metrics = symmetry_analyzer.analyze_knee_symmetry(kinematic_data)
 
 print(f"KSwS Index: {ksws_metrics.ksws_index:.4f}")
 print(f"Classification: {ksws_metrics.severity.classification}")
 
-# Create 3D visualization
 visualizer = DigitalTwinVisualizer(
     loader.get_marker_positions(),
     loader.get_marker_labels(),
     loader.point_rate
 )
 
-# Create interactive animation
 fig = visualizer.create_plotly_animation("TD1a")
 fig.show()
 
-# Save animation
-visualizer.save_animation(fig, "outputs/TD1a_animation.html")
-```
-
-## Project Structure
-
-```
-pedigait/
-├── pedigait/
-│   ├── __init__.py           # Package initialization
-│   ├── __main__.py           # Command-line interface
-│   ├── data/
-│   │   ├── c3d_loader.py      # C3D file loading
-│   │   └── kinematic_processor.py  # Kinematic data processing
-│   ├── visualization/
-│   │   └── digital_twin_3d.py # 3D visualization
-│   ├── analysis/
-│   │   ├── symmetry_analysis.py    # Symmetry and KSwS analysis
-│   │   └── comparative_analysis.py # TD vs CP comparison
-│   ├── classification/
-│   │   └── temporal_cnn.py    # CNN classification
-│   └── utils/
-│       └── helpers.py         # Utility functions
-├── requirements.txt          # Dependencies
-├── README.md                # This file
-├── data/                    # Sample data (not included)
-└── outputs/                 # Output directory
+visualizer.save_animation(
+    fig,
+    "outputs/TD1a_animation.html"
+)
 ```
 
 ## Data Requirements
 
-### Input Data
-- **C3D Files**: Standard biomechanical motion capture files
-- **Marker Set**: Should include at least:
-  - Pelvis: LASI, RASI, LPSI, RPSI
-  - Hip: LTHI, RTHI, LHFE, RHFE
-  - Knee: LKNE, RKNE, LFEME, RFEME
-  - Ankle: LANK, RANK, LHEE, RHEE
-  - Foot: LTOE, RTOE
+PediGait accepts standard biomechanical C3D motion-capture files.
 
-### Sample Data Structure
+The current skeletal reconstruction uses markers including:
+
+```text
+Pelvis:
+LASI, RASI, LPSI, RPSI
+
+Lower Limb:
+LTHI, RTHI
+LKNE, RKNE
+LTIB, RTIB
+LANK, RANK
+LHEE, RHEE
+LTOE, RTOE
 ```
+
+Additional markers may be used for upper-body and full-skeleton visualization.
+
+A typical data directory can be organized as:
+
+```text
 data/
 ├── c3d_files/
 │   ├── TD1a.c3d
@@ -171,137 +410,172 @@ data/
 │   ├── DiCP1.c3d
 │   ├── HeCP1.c3d
 │   └── ...
-└── workbook.xlsx        # Optional: Clinical kinematic parameters
+└── workbook.xlsx
 ```
 
-## Key Metrics
+Clinical or research datasets are not included in the public repository unless explicitly provided.
 
-### Knee Swing Symmetry/Severity (KSwS) Index
-- **Range**: 0 (normal) to 1 (highly pathological)
-- **Classification**:
-  - 0.0-0.1: Normal
-  - 0.1-0.3: Mild
-  - 0.3-0.6: Moderate
-  - 0.6-0.8: Severe
-  - 0.8-1.0: Highly Pathological
+## Project Structure
 
-### Symmetry Index
-- **Range**: 0 (perfect asymmetry) to 1 (perfect symmetry)
-- **Calculation**: 1 - (normalized RMSE between left and right trajectories)
-
-### Range of Motion (ROM)
-- Sagittal plane (flexion/extension)
-- Frontal plane (abduction/adduction)
-- Transverse plane (rotation)
-
-## Visualization
-
-### 3D Digital Twin
-- Interactive Plotly animations
-- Skeleton wireframe connections
-- Marker positions with labels
-- Color-coded by height (Z-coordinate)
-
-### Comparative Visualizations
-- Side-by-side TD vs CP comparisons
-- Range of motion bar charts
-- Trajectory overlay plots
-- Statistical comparison plots
-
-## Classification Models
-
-### Temporal CNN Architecture
+```text
+pedigait/
+├── pedigait/
+│   ├── __init__.py
+│   ├── __main__.py
+│   ├── data/
+│   │   ├── c3d_loader.py
+│   │   └── kinematic_processor.py
+│   ├── visualization/
+│   │   └── digital_twin_3d.py
+│   ├── analysis/
+│   │   ├── symmetry_analysis.py
+│   │   └── comparative_analysis.py
+│   ├── classification/
+│   │   └── temporal_cnn.py
+│   └── utils/
+│
+├── assets/
+├── docs/
+├── app.py
+├── generate_report_data_and_figures.py
+├── pedigait.ipynb
+├── index.html
+├── mocap_data.js
+├── mocap_data.json
+├── requirements.txt
+├── setup.py
+├── LICENSE
+└── README.md
 ```
-Input: [batch, 100, 18]  # 100 timesteps, 18 features
-├── Conv1d: 64 filters, kernel_size=3
-├── BatchNorm1d
-├── GELU activation
-├── Dropout: 0.3
-├── Conv1d: 64 filters, kernel_size=3
-├── BatchNorm1d
-├── GELU activation
-├── Dropout: 0.3
-├── BiLSTM: 128 hidden units, 2 layers
-├── Linear: 64 units
-├── GELU activation
-├── Dropout: 0.3
-└── Linear: n_classes (output)
-```
-
-### Tabular Baseline
-- Random Forest classifier
-- Uses extracted features from kinematic data
-- For comparison with CNN performance
-
-## Pathology Patterns
-
-### Detected Gait Patterns
-1. **Crouch Gait**: Excessive knee and hip flexion
-2. **Stiff Knee Gait**: Reduced knee flexion
-3. **Asymmetric Gait**: Significant left-right asymmetry
-4. **Jump Gait**: Excessive knee extension
-5. **Apparent Equinus**: Reduced ankle dorsiflexion
 
 ## Output Files
 
-The analysis pipeline generates:
-- `analysis_results.json`: Complete analysis results
-- `summary_report.txt`: Human-readable summary
-- `{trial}_animation.html`: Interactive 3D animations
-- `{trial}_static.png`: Static 3D visualizations
-- `classification_results.json`: Classification outputs
-- `comparative_analysis.json`: TD vs CP comparison
+The analysis pipeline can generate:
 
-## Dependencies
+```text
+analysis_results.json
+summary_report.txt
+{trial}_animation.html
+{trial}_static.png
+classification_results.json
+comparative_analysis.json
+```
 
-### Core Dependencies
-- numpy
-- pandas
-- matplotlib
-- scipy
-- scikit-learn
+These outputs contain processed biomechanical metrics, visualization files, classification results, and comparative analysis results.
 
-### C3D Processing
-- ezc3d
+## Technology Stack
 
-### 3D Visualization
-- plotly
-- mayavi (optional, for advanced 3D)
-- vtk (optional)
+| Component | Technology |
+|---|---|
+| Programming | Python |
+| Application | Streamlit |
+| Motion Capture | C3D / ezc3d |
+| Numerical Computing | NumPy |
+| Data Processing | Pandas |
+| Signal Processing | SciPy |
+| Visualization | Plotly, Matplotlib |
+| Machine Learning | Scikit-learn |
+| Deep Learning | PyTorch |
+| Web Visualization | HTML / JavaScript |
+| Package Management | setuptools |
 
-### Machine Learning
-- pytorch
-- torchvision
+## Research Status and Limitations
+
+PediGait is currently a research and engineering prototype.
+
+The project demonstrates:
+
+- Automated C3D processing
+- Biomechanical kinematic extraction
+- Interactive 3D digital-twin visualization
+- Bilateral symmetry analysis
+- KSwS-based severity analysis
+- TD versus CP comparison
+- Supervised gait classification
+- Patient-separated model evaluation
+
+The current model results should not be interpreted as clinical validation.
+
+Important areas for future validation include:
+
+- Larger and more diverse datasets
+- External validation cohorts
+- Independent clinical validation
+- Improved class-balance handling
+- Robustness across motion-capture laboratories
+- Prospective evaluation
+- Explainability of machine-learning predictions
+- Comparison against expert clinical assessment
+- Integration of additional kinetic and anthropometric information
+
+## Future Development
+
+Potential extensions include:
+
+- Physics-informed biomechanical modeling
+- Inverse dynamics
+- Ground-reaction-force estimation
+- Patient-specific digital twins
+- Anthropometric personalization
+- Real-time motion capture
+- Markerless pose estimation
+- Automated gait-event detection
+- Explainable gait classification
+- Longitudinal patient tracking
+- Multi-modal sensor fusion
+- Automated clinical report generation
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Create a new Pull Request
+Contributions are welcome.
+
+Create a feature branch:
+
+```bash
+git checkout -b feature/your-feature
+```
+
+Commit your changes:
+
+```bash
+git add .
+git commit -m "Describe your changes"
+```
+
+Push the branch:
+
+```bash
+git push origin feature/your-feature
+```
+
+Then open a Pull Request.
+
+For bugs, feature requests, or questions, use the GitHub issue tracker.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 ## Citation
 
-If you use this package in your research, please cite:
+If you use PediGait in academic or research work, please cite:
 
-```
+```bibtex
 @misc{pedigait,
-  author = {Shanmitha T},
-  title = {Pediatric Gait Digital Twin Analysis},
-  year = {2026},
-  howpublished = {\url{https://github.com/shanmithat/pedigait}},
+  author       = {Shanmitha T},
+  title        = {PediGait: Pediatric Gait Digital Twin and Biomechanical Analysis Platform},
+  year         = {2026},
+  howpublished = {GitHub},
+  url          = {https://github.com/shanmithat/pedigait}
 }
 ```
 
-## Contact
+## Project
 
-For questions or support, please open an issue on the GitHub repository.
+PediGait is a computational biomechanics and machine-learning research project focused on pediatric gait analysis, digital-twin visualization, and quantitative gait assessment.
 
-## Acknowledgments
+Repository:
+https://github.com/shanmithat/pedigait
 
-This project was developed for analyzing pediatric gait patterns in clinical and research settings. Special thanks to all contributors and testers.
+Live application:
+https://shanmithat.github.io/pedigait/
