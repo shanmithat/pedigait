@@ -570,6 +570,11 @@ If you use PediGait in academic or research work, please cite:
 }
 ```
 
+## Collaborators
+
+- **Shanmitha T**
+- **Rhea Ann Rajiv**
+
 ## Project
 
 PediGait is a computational biomechanics and machine-learning research project focused on pediatric gait analysis, digital-twin visualization, and quantitative gait assessment.
