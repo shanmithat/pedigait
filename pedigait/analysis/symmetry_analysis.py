@@ -124,8 +124,13 @@ class SymmetryAnalyzer:
         left_metrics = self._calculate_joint_metrics(left_sagittal)
         right_metrics = self._calculate_joint_metrics(right_sagittal)
         
-        # Calculate KSwS index (combination of symmetry and severity)
-        ksws_index = self._calculate_ksws_index(symmetry, severity)
+        # Calculate KSwS index using the closed-form alpha-beta formulation reported in the manuscript
+        ksws_index = self._calculate_ksws_index(
+            symmetry=symmetry,
+            severity=severity,
+            left_sagittal=left_sagittal,
+            right_sagittal=right_sagittal
+        )
         
         return KSwSMetrics(
             ksws_index=ksws_index,
@@ -298,27 +303,76 @@ class SymmetryAnalyzer:
         
         return metrics
     
-    def _calculate_ksws_index(self, symmetry: SymmetryMetrics, 
-                             severity: SeverityMetrics) -> float:
+    def calculate_alpha_beta_ksws(self, left_sagittal: np.ndarray,
+                                  right_sagittal: np.ndarray,
+                                  alpha: float = 0.6,
+                                  beta: float = 0.4,
+                                  norm_peak_flexion: float = 62.4) -> float:
         """
-        Calculate KSwS index from symmetry and severity metrics.
+        Calculate continuous Knee Swing Severity (KSwS) index via the manuscript's
+        closed-form alpha-beta formulation:
+            KSwS = 1.0 - (alpha * (max(theta_knee_swing) / theta_norm_peak) + beta * SI_knee)
         
         Args:
-            symmetry: Symmetry metrics
-            severity: Severity metrics
+            left_sagittal: Left knee sagittal trajectory (deg)
+            right_sagittal: Right knee sagittal trajectory (deg)
+            alpha: Weight for swing-phase peak flexion adequacy (default: 0.6)
+            beta: Weight for bilateral knee swing symmetry (default: 0.4)
+            norm_peak_flexion: Normative healthy peak swing flexion (default: 62.4 deg)
             
         Returns:
-            KSwS index (0-1, where 0 = normal, 1 = highly pathological)
+            Continuous KSwS index in [0.0, 1.0] (0 = normal, 1 = severe deficit)
         """
-        # Weight symmetry and severity components
-        symmetry_weight = 0.4
-        severity_weight = 0.6
+        n_points = min(len(left_sagittal), len(right_sagittal))
+        if n_points == 0:
+            return 0.0
         
-        # KSwS index combines asymmetry and severity
-        ksws_index = (symmetry_weight * symmetry.asymmetry_score + 
-                     severity_weight * severity.severity_score)
+        # Swing phase occupies approximately 60% - 100% of the gait cycle
+        swing_start = int(0.60 * n_points)
+        left_swing = left_sagittal[swing_start:] if swing_start < len(left_sagittal) else left_sagittal
+        right_swing = right_sagittal[swing_start:] if swing_start < len(right_sagittal) else right_sagittal
         
-        return ksws_index
+        left_peak = float(np.max(left_swing)) if len(left_swing) > 0 else 0.0
+        right_peak = float(np.max(right_swing)) if len(right_swing) > 0 else 0.0
+        max_swing_flexion = max(left_peak, right_peak)
+        
+        # Bilateral Knee Range of Motion (ROM) Symmetry Index:
+        # SI_knee = 1.0 - (|ROM_left - ROM_right| / (ROM_left + ROM_right))
+        left_rom = float(np.ptp(left_sagittal)) if len(left_sagittal) > 0 else 0.0
+        right_rom = float(np.ptp(right_sagittal)) if len(right_sagittal) > 0 else 0.0
+        rom_sum = left_rom + right_rom
+        if rom_sum > 1e-4:
+            si_knee = 1.0 - (abs(left_rom - right_rom) / rom_sum)
+        else:
+            si_knee = 1.0
+        si_knee = max(0.0, min(1.0, si_knee))
+        
+        # Flexion ratio bounded to [0.0, 1.0]
+        flexion_ratio = max(0.0, min(1.0, max_swing_flexion / norm_peak_flexion))
+        
+        ksws_val = 1.0 - (alpha * flexion_ratio + beta * si_knee)
+        return float(max(0.0, min(1.0, ksws_val)))
+
+    def calculate_heuristic_ksws(self, symmetry: SymmetryMetrics,
+                                severity: SeverityMetrics,
+                                symmetry_weight: float = 0.4,
+                                severity_weight: float = 0.6) -> float:
+        """
+        Exploratory heuristic composite score combining trajectory NRMSE asymmetry and penalty severity.
+        """
+        return float(symmetry_weight * symmetry.asymmetry_score + severity_weight * severity.severity_score)
+
+    def _calculate_ksws_index(self, symmetry: SymmetryMetrics, 
+                             severity: SeverityMetrics,
+                             left_sagittal: Optional[np.ndarray] = None,
+                             right_sagittal: Optional[np.ndarray] = None) -> float:
+        """
+        Calculate KSwS index. Defaults to the manuscript's closed-form alpha-beta formulation
+        when raw knee trajectories are provided, falling back to the heuristic composite score.
+        """
+        if left_sagittal is not None and right_sagittal is not None:
+            return self.calculate_alpha_beta_ksws(left_sagittal, right_sagittal)
+        return self.calculate_heuristic_ksws(symmetry, severity)
     
     def analyze_all_joints_symmetry(self, kinematic_data) -> Dict[str, SymmetryMetrics]:
         """
